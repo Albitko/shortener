@@ -7,29 +7,29 @@ import (
 	"github.com/Albitko/shortener/internal/usecase/repo"
 )
 
-type UrlConverter interface {
-	UrlToId(url entity.OriginalURL) entity.UrlId
-	IdToUrl(entity.UrlId) (entity.OriginalURL, bool)
+type URLConverter interface {
+	URLToID(url entity.OriginalURL) entity.URLID
+	IDToURL(entity.URLID) (entity.OriginalURL, bool)
 }
 
 type urlConverter struct {
 	repo repo.Repository
 }
 
-func (uc *urlConverter) UrlToId(url entity.OriginalURL) entity.UrlId {
+func (uc *urlConverter) URLToID(url entity.OriginalURL) entity.URLID {
 	hasher := sha1.New()
 	hasher.Write([]byte(url))
-	id := entity.UrlId(base64.URLEncoding.EncodeToString(hasher.Sum(nil))[:10])
-	uc.repo.AddUrl(id, url)
+	id := entity.URLID(base64.URLEncoding.EncodeToString(hasher.Sum(nil))[:10])
+	uc.repo.AddURL(id, url)
 	return id
 }
 
-func (uc *urlConverter) IdToUrl(id entity.UrlId) (entity.OriginalURL, bool) {
-	url, ok := uc.repo.GetUrlById(id)
+func (uc *urlConverter) IDToURL(id entity.URLID) (entity.OriginalURL, bool) {
+	url, ok := uc.repo.GetURLByID(id)
 	return url, ok
 }
 
-func NewUrlConverter(r repo.Repository) UrlConverter {
+func NewURLConverter(r repo.Repository) URLConverter {
 	return &urlConverter{
 		repo: r,
 	}

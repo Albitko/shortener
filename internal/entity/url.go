@@ -1,4 +1,4 @@
 package entity
 
-type UrlId string
+type URLID string
 type OriginalURL string

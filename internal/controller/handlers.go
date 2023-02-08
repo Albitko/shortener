@@ -8,15 +8,15 @@ import (
 	"net/http"
 )
 
-type UrlHandler interface {
+type URLHandler interface {
 	ServeHTTP(http.ResponseWriter, *http.Request)
 }
 
 type urlHandler struct {
-	uc usecase.UrlConverter
+	uc usecase.URLConverter
 }
 
-func NewUrlHandler(u usecase.UrlConverter) UrlHandler {
+func NewURLHandler(u usecase.URLConverter) URLHandler {
 	return &urlHandler{
 		uc: u,
 	}
@@ -39,7 +39,7 @@ func (h *urlHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		w.WriteHeader(http.StatusCreated)
-		shortURL := h.uc.UrlToId(entity.OriginalURL(originalURL[:]))
+		shortURL := h.uc.URLToID(entity.OriginalURL(originalURL[:]))
 
 		log.Print("POST URL:", string(originalURL[:]), " id: ", shortURL, "\n")
 
@@ -53,9 +53,9 @@ func (h *urlHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case http.MethodGet:
 		shortPath := r.URL.EscapedPath()
 
-		//val, ok := h.uc.IdToUrl(entity.UrlId(shortPath[1:]))
+		//val, ok := h.uc.IDToURL(entity.URLID(shortPath[1:]))
 		//fmt.Print(val, ok, shortPath[1:])
-		if val, ok := h.uc.IdToUrl(entity.UrlId(shortPath[1:])); ok {
+		if val, ok := h.uc.IDToURL(entity.URLID(shortPath[1:])); ok {
 			w.Header().Set("Location", string(val))
 			w.WriteHeader(http.StatusTemporaryRedirect)
 			log.Print("GET id:", shortPath[1:], " URL: ", val, "\n")

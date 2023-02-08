@@ -2,20 +2,20 @@ package repo
 
 import "github.com/Albitko/shortener/internal/entity"
 
-var storage = make(map[entity.UrlId]entity.OriginalURL)
+var storage = make(map[entity.URLID]entity.OriginalURL)
 
 type Repository interface {
-	AddUrl(entity.UrlId, entity.OriginalURL)
-	GetUrlById(entity.UrlId) (entity.OriginalURL, bool)
+	AddURL(entity.URLID, entity.OriginalURL)
+	GetURLByID(entity.URLID) (entity.OriginalURL, bool)
 }
 
 type repository struct{}
 
-func (r *repository) AddUrl(id entity.UrlId, url entity.OriginalURL) {
+func (r *repository) AddURL(id entity.URLID, url entity.OriginalURL) {
 	storage[id] = url
 }
 
-func (r *repository) GetUrlById(id entity.UrlId) (entity.OriginalURL, bool) {
+func (r *repository) GetURLByID(id entity.URLID) (entity.OriginalURL, bool) {
 	url, ok := storage[id]
 	return url, ok
 }

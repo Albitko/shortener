@@ -10,8 +10,8 @@ import (
 
 func Run() {
 	repository := repo.NewRepository()
-	uc := usecase.NewUrlConverter(repository)
-	handler := controller.NewUrlHandler(uc)
+	uc := usecase.NewURLConverter(repository)
+	handler := controller.NewURLHandler(uc)
 
 	http.Handle("/", handler)
 
