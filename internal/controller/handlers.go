@@ -51,14 +51,12 @@ func (h *urlHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 
 	case http.MethodGet:
-		shortPath := r.URL.EscapedPath()
+		shortURL := r.URL.EscapedPath()
 
-		//val, ok := h.uc.IDToURL(entity.URLID(shortPath[1:]))
-		//fmt.Print(val, ok, shortPath[1:])
-		if val, ok := h.uc.IDToURL(entity.URLID(shortPath[1:])); ok {
-			w.Header().Set("Location", string(val))
+		if originalUrl, ok := h.uc.IDToURL(entity.URLID(shortURL[1:])); ok {
+			w.Header().Set("Location", string(originalUrl))
 			w.WriteHeader(http.StatusTemporaryRedirect)
-			log.Print("GET id:", shortPath[1:], " URL: ", val, "\n")
+			log.Print("GET id:", shortURL[1:], " URL: ", originalUrl, "\n")
 		}
 
 	default:
