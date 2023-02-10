@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"github.com/Albitko/shortener/internal/usecase"
 	"github.com/Albitko/shortener/internal/usecase/repo"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -72,29 +74,20 @@ func TestHandler(t *testing.T) {
 			hndl.ServeHTTP(w, request)
 			res := w.Result()
 
-			if res.StatusCode != tt.want.code {
-				t.Errorf("Expected status code %d, got %d", tt.want.code, w.Code)
-			}
+			assert.Equal(t, tt.want.code, res.StatusCode)
 
 			locationURL, err := res.Location()
 
-			if err == nil && locationURL.String() != tt.want.location {
-				t.Errorf("Expected status code %d, got %d", tt.want.code, w.Code)
+			if err == nil {
+				assert.Equal(t, tt.want.location, locationURL.String())
 			}
 
-			defer func(Body io.ReadCloser) {
-				err := Body.Close()
-				if err != nil {
-					t.Errorf("Error closing body %s", err)
-				}
-			}(res.Body)
 			resBody, err := io.ReadAll(res.Body)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if string(resBody) != tt.want.response {
-				t.Errorf("Expected body %s, got %s", tt.want.response, w.Body.String())
-			}
+			require.NoError(t, err)
+			err = res.Body.Close()
+			require.NoError(t, err)
+			assert.Equal(t, tt.want.response, string(resBody))
+
 		})
 	}
 }
