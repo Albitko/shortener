@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"github.com/Albitko/shortener/internal/usecase"
 	"github.com/Albitko/shortener/internal/usecase/repo"
+	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io"
@@ -12,82 +13,54 @@ import (
 	"testing"
 )
 
-func TestHandler(t *testing.T) {
-
-	type want struct {
-		code          int
-		requestBody   string
-		requestMethod string
-		response      string
-		params        string
-		location      string
-	}
-	tests := []struct {
-		name string
-		want want
-	}{
-		{
-			name: "test POST request",
-			want: want{
-				code:          http.StatusCreated,
-				requestBody:   "https://google.com",
-				requestMethod: http.MethodPost,
-				response:      "http://localhost:8080/cv6VxVduxj",
-				params:        "",
-			},
-		},
-		{
-			name: "test GET request",
-			want: want{
-				code:          http.StatusTemporaryRedirect,
-				requestBody:   "",
-				requestMethod: http.MethodGet,
-				response:      "",
-				params:        "cv6VxVduxj",
-				location:      "https://google.com",
-			},
-		},
-		{
-			name: "test Bad request",
-			want: want{
-				code:          http.StatusBadRequest,
-				requestBody:   "230f2jdql",
-				requestMethod: http.MethodPut,
-				response:      "",
-				params:        "",
-			},
+func testRequest(t *testing.T, ts *httptest.Server, method, path string, body io.Reader) (*http.Response, string) {
+	client := &http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
 		},
 	}
 
+	req, err := http.NewRequest(method, ts.URL+path, body)
+	require.NoError(t, err)
+
+	resp, err := client.Do(req)
+	require.NoError(t, err)
+
+	defer resp.Body.Close()
+	respBody, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+
+	return resp, string(respBody)
+}
+
+func setupRouter() *gin.Engine {
 	repository := repo.NewRepository()
 	uc := usecase.NewURLConverter(repository)
-	hndl := NewURLHandler(uc)
-	http.Handle("/", hndl)
+	handler := NewURLHandler(uc)
+	router := gin.New()
 
-	for _, tt := range tests {
+	router.Use(gin.Logger())
+	router.Use(gin.Recovery())
 
-		t.Run(tt.name, func(t *testing.T) {
-			request := httptest.NewRequest(tt.want.requestMethod, "/"+tt.want.params, bytes.NewBuffer([]byte(tt.want.requestBody)))
+	router.POST("/", handler.URLToID)
+	router.GET("/:id", handler.GetID)
+	return router
+}
 
-			w := httptest.NewRecorder()
+func TestRouter(t *testing.T) {
 
-			hndl.ServeHTTP(w, request)
-			res := w.Result()
+	router := setupRouter()
+	ts := httptest.NewServer(router)
+	defer ts.Close()
 
-			assert.Equal(t, tt.want.code, res.StatusCode)
+	reqPost, body := testRequest(t, ts, "POST", "/", bytes.NewBuffer([]byte("https://google.com")))
+	assert.Equal(t, http.StatusCreated, reqPost.StatusCode)
+	assert.Equal(t, "http://localhost:8080/cv6VxVduxj", body)
 
-			locationURL, err := res.Location()
+	reqGet, _ := testRequest(t, ts, "GET", "/cv6VxVduxj", nil)
+	assert.Equal(t, http.StatusTemporaryRedirect, reqGet.StatusCode)
+	assert.Equal(t, "https://google.com", reqGet.Header.Get("Location"))
 
-			if err == nil {
-				assert.Equal(t, tt.want.location, locationURL.String())
-			}
-
-			resBody, err := io.ReadAll(res.Body)
-			require.NoError(t, err)
-			err = res.Body.Close()
-			require.NoError(t, err)
-			assert.Equal(t, tt.want.response, string(resBody))
-
-		})
-	}
+	reqBad, _ := testRequest(t, ts, "POST", "/", bytes.NewBuffer([]byte("SOME_STRING")))
+	assert.Equal(t, http.StatusBadRequest, reqBad.StatusCode)
 }
