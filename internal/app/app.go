@@ -4,8 +4,8 @@ import (
 	"github.com/Albitko/shortener/internal/controller"
 	"github.com/Albitko/shortener/internal/usecase"
 	"github.com/Albitko/shortener/internal/usecase/repo"
+	"github.com/gin-gonic/gin"
 	"log"
-	"net/http"
 )
 
 func Run() {
@@ -13,7 +13,16 @@ func Run() {
 	uc := usecase.NewURLConverter(repository)
 	handler := controller.NewURLHandler(uc)
 
-	http.Handle("/", handler)
+	router := gin.New()
+	router.Use(gin.Logger())
+	router.Use(gin.Recovery())
 
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	router.POST("/", handler.URLToID)
+	router.GET("/:id", handler.GetID)
+
+	err := router.Run(":8080")
+	if err != nil {
+		log.Fatal("Couldn't  start server ", err)
+		return
+	}
 }
