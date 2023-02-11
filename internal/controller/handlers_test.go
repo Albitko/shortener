@@ -13,7 +13,7 @@ import (
 	"testing"
 )
 
-func testRequest(t *testing.T, ts *httptest.Server, method, path string, body io.Reader) (*http.Response, string) {
+func testRequest(t *testing.T, ts *httptest.Server, method, path string, body io.Reader) (int, http.Header, string) {
 	client := &http.Client{
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse
@@ -30,7 +30,7 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string, body io
 	respBody, err := io.ReadAll(resp.Body)
 	require.NoError(t, err)
 
-	return resp, string(respBody)
+	return resp.StatusCode, resp.Header, string(respBody)
 }
 
 func setupRouter() *gin.Engine {
@@ -53,14 +53,14 @@ func TestRouter(t *testing.T) {
 	ts := httptest.NewServer(router)
 	defer ts.Close()
 
-	reqPost, body := testRequest(t, ts, "POST", "/", bytes.NewBuffer([]byte("https://google.com")))
-	assert.Equal(t, http.StatusCreated, reqPost.StatusCode)
+	pStatus, _, body := testRequest(t, ts, "POST", "/", bytes.NewBuffer([]byte("https://google.com")))
+	assert.Equal(t, http.StatusCreated, pStatus)
 	assert.Equal(t, "http://localhost:8080/cv6VxVduxj", body)
 
-	reqGet, _ := testRequest(t, ts, "GET", "/cv6VxVduxj", nil)
-	assert.Equal(t, http.StatusTemporaryRedirect, reqGet.StatusCode)
-	assert.Equal(t, "https://google.com", reqGet.Header.Get("Location"))
+	gStatus, gHeaders, _ := testRequest(t, ts, "GET", "/cv6VxVduxj", nil)
+	assert.Equal(t, http.StatusTemporaryRedirect, gStatus)
+	assert.Equal(t, "https://google.com", gHeaders.Get("Location"))
 
-	reqBad, _ := testRequest(t, ts, "POST", "/", bytes.NewBuffer([]byte("SOME_STRING")))
-	assert.Equal(t, http.StatusBadRequest, reqBad.StatusCode)
+	badStatus, _, _ := testRequest(t, ts, "POST", "/", bytes.NewBuffer([]byte("SOME_STRING")))
+	assert.Equal(t, http.StatusBadRequest, badStatus)
 }
