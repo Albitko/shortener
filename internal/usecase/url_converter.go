@@ -3,6 +3,7 @@ package usecase
 import (
 	"crypto/sha1"
 	"encoding/base64"
+
 	"github.com/Albitko/shortener/internal/entity"
 	"github.com/Albitko/shortener/internal/usecase/repo"
 )

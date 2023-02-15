@@ -1,11 +1,13 @@
 package app
 
 import (
+	"log"
+
+	"github.com/gin-gonic/gin"
+
 	"github.com/Albitko/shortener/internal/controller"
 	"github.com/Albitko/shortener/internal/usecase"
 	"github.com/Albitko/shortener/internal/usecase/repo"
-	"github.com/gin-gonic/gin"
-	"log"
 )
 
 func Run() {

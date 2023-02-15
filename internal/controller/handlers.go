@@ -1,13 +1,15 @@
 package controller
 
 import (
-	"github.com/Albitko/shortener/internal/entity"
-	"github.com/Albitko/shortener/internal/usecase"
-	"github.com/gin-gonic/gin"
 	"io"
 	"log"
 	"net/http"
 	"net/url"
+
+	"github.com/gin-gonic/gin"
+
+	"github.com/Albitko/shortener/internal/entity"
+	"github.com/Albitko/shortener/internal/usecase"
 )
 
 type URLHandler interface {

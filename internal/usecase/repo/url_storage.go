@@ -1,8 +1,9 @@
 package repo
 
 import (
-	"github.com/Albitko/shortener/internal/entity"
 	"sync"
+
+	"github.com/Albitko/shortener/internal/entity"
 )
 
 type Repository interface {

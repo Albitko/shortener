@@ -2,15 +2,17 @@ package controller
 
 import (
 	"bytes"
-	"github.com/Albitko/shortener/internal/usecase"
-	"github.com/Albitko/shortener/internal/usecase/repo"
-	"github.com/gin-gonic/gin"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/Albitko/shortener/internal/usecase"
+	"github.com/Albitko/shortener/internal/usecase/repo"
 )
 
 func testRequest(t *testing.T, ts *httptest.Server, method, path string, body io.Reader) (int, http.Header, string) {
