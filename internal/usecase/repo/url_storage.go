@@ -12,7 +12,7 @@ type Repository interface {
 }
 
 type repository struct {
-	sync.Mutex
+	sync.RWMutex
 	storage map[entity.URLID]entity.OriginalURL
 }
 
@@ -23,8 +23,8 @@ func (r *repository) AddURL(id entity.URLID, url entity.OriginalURL) {
 }
 
 func (r *repository) GetURLByID(id entity.URLID) (entity.OriginalURL, bool) {
-	r.Lock()
-	defer r.Unlock()
+	r.RLock()
+	defer r.RUnlock()
 	url, ok := r.storage[id]
 	return url, ok
 }
