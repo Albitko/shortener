@@ -9,19 +9,18 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/Albitko/shortener/internal/entity"
-	"github.com/Albitko/shortener/internal/usecase"
 )
 
-type URLHandler interface {
-	GetID(*gin.Context)
-	URLToID(*gin.Context)
+type urlConverter interface {
+	URLToID(url entity.OriginalURL) entity.URLID
+	IDToURL(entity.URLID) (entity.OriginalURL, bool)
 }
 
 type urlHandler struct {
-	uc usecase.URLConverter
+	uc urlConverter
 }
 
-func NewURLHandler(u usecase.URLConverter) URLHandler {
+func NewURLHandler(u urlConverter) *urlHandler {
 	return &urlHandler{
 		uc: u,
 	}
