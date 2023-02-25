@@ -45,6 +45,7 @@ func setupRouter() *gin.Engine {
 	router.Use(gin.Recovery())
 
 	router.POST("/", handler.URLToID)
+	router.POST("/api/shorten", handler.URLToIDInJSON)
 	router.GET("/:id", handler.GetID)
 	return router
 }
@@ -65,4 +66,8 @@ func TestRouter(t *testing.T) {
 
 	badStatus, _, _ := testRequest(t, ts, "POST", "/", bytes.NewBuffer([]byte("SOME_STRING")))
 	assert.Equal(t, http.StatusBadRequest, badStatus)
+
+	jStatus, _, body := testRequest(t, ts, "POST", "/api/shorten", bytes.NewBuffer([]byte(`{"url":"https://yandex.ru"}`)))
+	assert.Equal(t, http.StatusCreated, jStatus)
+	assert.Equal(t, `{"result":"http://localhost:8080/4eVSAfM3-P"}`, body)
 }
