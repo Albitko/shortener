@@ -66,6 +66,7 @@ func (h *urlHandler) URLToIDInJSON(c *gin.Context) {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
+	c.Header("Content-Type", "application/json")
 	shortURL := processURL(c, h, requestJSON["url"])
 
 	log.Print("POST URL:", requestJSON["url"], " id: ", shortURL, "\n")
