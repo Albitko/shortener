@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"encoding/json"
 	"io"
 	"log"
 	"net/http"
@@ -26,6 +27,14 @@ func NewURLHandler(u urlConverter) *urlHandler {
 	}
 }
 
+func processURL(c *gin.Context, h *urlHandler, originalURL string) entity.URLID {
+	_, err := url.ParseRequestURI(originalURL)
+	if err != nil {
+		c.String(http.StatusBadRequest, "Should be URL in the body")
+	}
+	return h.uc.URLToID(entity.OriginalURL(originalURL))
+}
+
 func (h *urlHandler) GetID(c *gin.Context) {
 	id := c.Param("id")
 
@@ -43,13 +52,23 @@ func (h *urlHandler) URLToID(c *gin.Context) {
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 	}
-	_, err = url.ParseRequestURI(string(originalURL))
-	if err != nil {
-		c.String(http.StatusBadRequest, "Should be URL in the body")
-	}
-	shortURL := h.uc.URLToID(entity.OriginalURL(originalURL[:]))
+
+	shortURL := processURL(c, h, string(originalURL))
 
 	log.Print("POST URL:", string(originalURL[:]), " id: ", shortURL, "\n")
 
 	c.String(http.StatusCreated, "http://localhost:8080/"+string(shortURL))
+}
+
+func (h *urlHandler) URLToIDInJSON(c *gin.Context) {
+	requestJSON := make(map[string]string)
+	if err := json.NewDecoder(c.Request.Body).Decode(&requestJSON); err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	shortURL := processURL(c, h, requestJSON["url"])
+
+	log.Print("POST URL:", requestJSON["url"], " id: ", shortURL, "\n")
+
+	c.String(http.StatusCreated, "{\"result\":\"http://localhost:8080/"+string(shortURL)+"\"}")
 }

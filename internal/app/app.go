@@ -20,6 +20,7 @@ func Run() {
 	router.Use(gin.Recovery())
 
 	router.POST("/", handler.URLToID)
+	router.POST("/api/shorten", handler.URLToIDInJSON)
 	router.GET("/:id", handler.GetID)
 
 	err := router.Run(":8080")
