@@ -18,12 +18,18 @@ type urlConverter interface {
 }
 
 type urlHandler struct {
-	uc urlConverter
+	uc      urlConverter
+	baseURL string
 }
 
-func NewURLHandler(u urlConverter) *urlHandler {
+func NewURLHandler(u urlConverter, envBaseURL string) *urlHandler {
+	baseURL := "http://localhost:8080/"
+	if envBaseURL != "" {
+		baseURL = envBaseURL
+	}
 	return &urlHandler{
-		uc: u,
+		uc:      u,
+		baseURL: baseURL,
 	}
 }
 
@@ -57,7 +63,7 @@ func (h *urlHandler) URLToID(c *gin.Context) {
 
 	log.Print("POST URL:", string(originalURL[:]), " id: ", shortURL, "\n")
 
-	c.String(http.StatusCreated, "http://localhost:8080/"+string(shortURL))
+	c.String(http.StatusCreated, h.baseURL+string(shortURL))
 }
 
 func (h *urlHandler) URLToIDInJSON(c *gin.Context) {
@@ -71,5 +77,5 @@ func (h *urlHandler) URLToIDInJSON(c *gin.Context) {
 
 	log.Print("POST URL:", requestJSON["url"], " id: ", shortURL, "\n")
 
-	c.String(http.StatusCreated, "{\"result\":\"http://localhost:8080/"+string(shortURL)+"\"}")
+	c.String(http.StatusCreated, "{\"result\":\""+h.baseURL+string(shortURL)+"\"}")
 }

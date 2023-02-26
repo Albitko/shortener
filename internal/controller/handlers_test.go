@@ -2,7 +2,10 @@ package controller
 
 import (
 	"bytes"
+	"github.com/Albitko/shortener/internal/entity"
+	"github.com/caarlos0/env/v6"
 	"io"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -36,9 +39,15 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string, body io
 }
 
 func setupRouter() *gin.Engine {
+	var cfg entity.Config
+	err := env.Parse(&cfg)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	repository := repo.NewRepository()
 	uc := usecase.NewURLConverter(repository)
-	handler := NewURLHandler(uc)
+	handler := NewURLHandler(uc, cfg.BaseURL)
 	router := gin.New()
 
 	router.Use(gin.Logger())
