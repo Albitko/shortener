@@ -1,6 +1,7 @@
 package app
 
 import (
+	"github.com/Albitko/shortener/internal/usecase/repo"
 	"log"
 
 	"github.com/caarlos0/env/v6"
@@ -9,18 +10,28 @@ import (
 	"github.com/Albitko/shortener/internal/controller"
 	"github.com/Albitko/shortener/internal/entity"
 	"github.com/Albitko/shortener/internal/usecase"
-	"github.com/Albitko/shortener/internal/usecase/repo"
 )
+
+type storage interface {
+	AddURL(entity.URLID, entity.OriginalURL)
+	GetURLByID(entity.URLID) (entity.OriginalURL, bool)
+}
 
 func Run() {
 	serverAddress := ":8080"
 	var cfg entity.Config
+	var repository storage
 	err := env.Parse(&cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	repository := repo.NewRepository()
+	if cfg.FileStoragePath != "" {
+		repository = repo.NewFileRepository(cfg.FileStoragePath)
+	} else {
+		repository = repo.NewMemRepository()
+	}
+
 	uc := usecase.NewURLConverter(repository)
 	handler := controller.NewURLHandler(uc, cfg.BaseURL)
 
