@@ -33,7 +33,7 @@ func Run() {
 	router.GET("/:id", handler.GetID)
 
 	if cfg.ServerAddress != "" {
-		serverAddress = cfg.ServerAddress + serverAddress
+		serverAddress = cfg.ServerAddress
 	}
 
 	err = router.Run(serverAddress)
