@@ -15,6 +15,7 @@ import (
 type storage interface {
 	AddURL(entity.URLID, entity.OriginalURL)
 	GetURLByID(entity.URLID) (entity.OriginalURL, bool)
+	Close() error
 }
 
 func Run() {
@@ -26,12 +27,8 @@ func Run() {
 		log.Fatal(err)
 	}
 
-	if cfg.FileStoragePath != "" {
-		repository = repo.NewFileRepository(cfg.FileStoragePath)
-	} else {
-		repository = repo.NewMemRepository()
-	}
-
+	repository = repo.NewRepository(cfg.FileStoragePath)
+	defer repository.Close()
 	uc := usecase.NewURLConverter(repository)
 	handler := controller.NewURLHandler(uc, cfg.BaseURL)
 
