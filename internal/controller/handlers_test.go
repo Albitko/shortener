@@ -45,7 +45,7 @@ func setupRouter() *gin.Engine {
 		log.Fatal(err)
 	}
 
-	repository := repo.NewMemRepository()
+	repository := repo.NewRepository("")
 	uc := usecase.NewURLConverter(repository)
 	handler := NewURLHandler(uc, cfg.BaseURL)
 	router := gin.New()
