@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/caarlos0/env/v6"
+	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
 
 	"github.com/Albitko/shortener/internal/controller"
@@ -41,6 +42,7 @@ func Run() {
 	router := gin.New()
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
+	router.Use(gzip.Gzip(gzip.DefaultCompression))
 
 	router.POST("/", handler.URLToID)
 	router.POST("/api/shorten", handler.URLToIDInJSON)
