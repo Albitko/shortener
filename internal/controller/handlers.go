@@ -35,7 +35,7 @@ func NewURLHandler(u urlConverter, envBaseURL string) *urlHandler {
 
 func processURL(c *gin.Context, h *urlHandler, originalURL string) entity.URLID {
 	_, err := url.ParseRequestURI(originalURL)
-	if err != nil {
+	if err != nil && c.GetHeader("Content-Encoding") != "gzip" {
 		c.String(http.StatusBadRequest, "Should be URL in the body")
 	}
 	return h.uc.URLToID(entity.OriginalURL(originalURL))
