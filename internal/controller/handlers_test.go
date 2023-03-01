@@ -2,6 +2,7 @@ package controller
 
 import (
 	"bytes"
+	"flag"
 	"github.com/Albitko/shortener/internal/entity"
 	"github.com/caarlos0/env/v6"
 	"io"
@@ -40,6 +41,12 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string, body io
 
 func setupRouter() *gin.Engine {
 	var cfg entity.Config
+
+	flag.StringVar(&cfg.ServerAddress, "a", ":8080", "port to listen on")
+	flag.StringVar(&cfg.BaseURL, "b", "http://localhost:8080", "http://HOST:PORT")
+	flag.StringVar(&cfg.FileStoragePath, "f", "", "File that stores URL -> ID")
+	flag.Parse()
+
 	err := env.Parse(&cfg)
 	if err != nil {
 		log.Fatal(err)
