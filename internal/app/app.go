@@ -1,10 +1,8 @@
 package app
 
 import (
-	"flag"
 	"log"
 
-	"github.com/caarlos0/env/v6"
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
 
@@ -20,19 +18,8 @@ type storage interface {
 	Close() error
 }
 
-func Run() {
-	var cfg entity.Config
+func Run(cfg entity.Config) {
 	var repository storage
-
-	flag.StringVar(&cfg.ServerAddress, "a", ":8080", "port to listen on")
-	flag.StringVar(&cfg.BaseURL, "b", "http://localhost:8080", "http://HOST:PORT")
-	flag.StringVar(&cfg.FileStoragePath, "f", "", "File that stores URL -> ID")
-	flag.Parse()
-
-	err := env.Parse(&cfg)
-	if err != nil {
-		log.Fatal(err)
-	}
 
 	repository = repo.NewRepository(cfg.FileStoragePath)
 	defer repository.Close()
@@ -48,7 +35,7 @@ func Run() {
 	router.POST("/api/shorten", handler.URLToIDInJSON)
 	router.GET("/:id", handler.GetID)
 
-	err = router.Run(cfg.ServerAddress)
+	err := router.Run(cfg.ServerAddress)
 	if err != nil {
 		log.Fatal("Couldn't  start server ", err)
 		return

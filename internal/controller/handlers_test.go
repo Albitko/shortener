@@ -3,20 +3,17 @@ package controller
 import (
 	"bytes"
 	gz "compress/gzip"
-	"flag"
+	"github.com/Albitko/shortener/internal/config"
 	"io"
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
-	"github.com/caarlos0/env/v6"
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/Albitko/shortener/internal/entity"
 	"github.com/Albitko/shortener/internal/usecase"
 	"github.com/Albitko/shortener/internal/usecase/repo"
 )
@@ -66,17 +63,7 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string, body []
 }
 
 func setupRouter() *gin.Engine {
-	var cfg entity.Config
-
-	flag.StringVar(&cfg.ServerAddress, "a", ":8080", "port to listen on")
-	flag.StringVar(&cfg.BaseURL, "b", "http://localhost:8080", "http://HOST:PORT")
-	flag.StringVar(&cfg.FileStoragePath, "f", "", "File that stores URL -> ID")
-	flag.Parse()
-
-	err := env.Parse(&cfg)
-	if err != nil {
-		log.Fatal(err)
-	}
+	cfg := config.NewConfig()
 
 	repository := repo.NewRepository("")
 	uc := usecase.NewURLConverter(repository)
