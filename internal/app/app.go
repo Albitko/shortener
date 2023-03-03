@@ -42,7 +42,7 @@ func Run() {
 	router := gin.New()
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
-	router.Use(gzip.Gzip(gzip.DefaultCompression))
+	router.Use(gzip.Gzip(gzip.DefaultCompression, gzip.WithDecompressFn(gzip.DefaultDecompressHandle)))
 
 	router.POST("/", handler.URLToID)
 	router.POST("/api/shorten", handler.URLToIDInJSON)
