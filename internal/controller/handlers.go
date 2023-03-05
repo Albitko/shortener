@@ -37,6 +37,7 @@ func processURL(c *gin.Context, h *urlHandler, originalURL string) entity.URLID 
 	_, err := url.ParseRequestURI(originalURL)
 	if err != nil {
 		c.String(http.StatusBadRequest, "Should be URL in the body")
+		log.Print("ERROR:", err, "\n")
 	}
 	return h.uc.URLToID(entity.OriginalURL(originalURL))
 }
@@ -69,6 +70,7 @@ func (h *urlHandler) URLToID(c *gin.Context) {
 func (h *urlHandler) URLToIDInJSON(c *gin.Context) {
 	requestJSON := make(map[string]string)
 	if err := json.NewDecoder(c.Request.Body).Decode(&requestJSON); err != nil {
+		log.Print("ERROR:", err, "\n")
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
