@@ -5,16 +5,15 @@ import (
 	"encoding/base64"
 
 	"github.com/Albitko/shortener/internal/entity"
-	"github.com/Albitko/shortener/internal/usecase/repo"
 )
 
-type URLConverter interface {
-	URLToID(url entity.OriginalURL) entity.URLID
-	IDToURL(entity.URLID) (entity.OriginalURL, bool)
+type repository interface {
+	AddURL(entity.URLID, entity.OriginalURL)
+	GetURLByID(entity.URLID) (entity.OriginalURL, bool)
 }
 
 type urlConverter struct {
-	repo repo.Repository
+	repo repository
 }
 
 func (uc *urlConverter) URLToID(url entity.OriginalURL) entity.URLID {
@@ -30,7 +29,7 @@ func (uc *urlConverter) IDToURL(id entity.URLID) (entity.OriginalURL, bool) {
 	return url, ok
 }
 
-func NewURLConverter(r repo.Repository) URLConverter {
+func NewURLConverter(r repository) *urlConverter {
 	return &urlConverter{
 		repo: r,
 	}

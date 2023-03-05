@@ -1,0 +1,25 @@
+name: my unit tests
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  unittests:
+    runs-on: ubuntu-latest
+    container: golang:1.19
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: My unit tests
+        run: go test -race -tags fast -coverprofile unit.txt -covermode atomic ./...
+
+      - name: Upload coverage report to Codecov
+        uses: codecov/codecov-action@v2
+        with:
+          file: ./unit.txt
+          name: unit

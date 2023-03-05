@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"encoding/json"
 	"io"
 	"log"
 	"net/http"
@@ -9,22 +10,35 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/Albitko/shortener/internal/entity"
-	"github.com/Albitko/shortener/internal/usecase"
 )
 
-type URLHandler interface {
-	GetID(*gin.Context)
-	URLToID(*gin.Context)
+type urlConverter interface {
+	URLToID(url entity.OriginalURL) entity.URLID
+	IDToURL(entity.URLID) (entity.OriginalURL, bool)
 }
 
 type urlHandler struct {
-	uc usecase.URLConverter
+	uc      urlConverter
+	baseURL string
 }
 
-func NewURLHandler(u usecase.URLConverter) URLHandler {
-	return &urlHandler{
-		uc: u,
+func NewURLHandler(u urlConverter, envBaseURL string) *urlHandler {
+	baseURL := "http://localhost:8080/"
+	if envBaseURL != "" {
+		baseURL = envBaseURL + "/"
 	}
+	return &urlHandler{
+		uc:      u,
+		baseURL: baseURL,
+	}
+}
+
+func processURL(c *gin.Context, h *urlHandler, originalURL string) entity.URLID {
+	_, err := url.ParseRequestURI(originalURL)
+	if err != nil {
+		c.String(http.StatusBadRequest, "Should be URL in the body")
+	}
+	return h.uc.URLToID(entity.OriginalURL(originalURL))
 }
 
 func (h *urlHandler) GetID(c *gin.Context) {
@@ -44,13 +58,24 @@ func (h *urlHandler) URLToID(c *gin.Context) {
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 	}
-	_, err = url.ParseRequestURI(string(originalURL))
-	if err != nil {
-		c.String(http.StatusBadRequest, "Should be URL in the body")
-	}
-	shortURL := h.uc.URLToID(entity.OriginalURL(originalURL[:]))
+
+	shortURL := processURL(c, h, string(originalURL))
 
 	log.Print("POST URL:", string(originalURL[:]), " id: ", shortURL, "\n")
 
-	c.String(http.StatusCreated, "http://localhost:8080/"+string(shortURL))
+	c.String(http.StatusCreated, h.baseURL+string(shortURL))
+}
+
+func (h *urlHandler) URLToIDInJSON(c *gin.Context) {
+	requestJSON := make(map[string]string)
+	if err := json.NewDecoder(c.Request.Body).Decode(&requestJSON); err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	c.Header("Content-Type", "application/json")
+	shortURL := processURL(c, h, requestJSON["url"])
+
+	log.Print("POST URL:", requestJSON["url"], " id: ", shortURL, "\n")
+
+	c.String(http.StatusCreated, "{\"result\":\""+h.baseURL+string(shortURL)+"\"}")
 }
