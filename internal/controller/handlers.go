@@ -100,7 +100,7 @@ func (h *urlHandler) URLToID(c *gin.Context) {
 }
 
 func (h *urlHandler) URLToIDInJSON(c *gin.Context) {
-	userId, err := checkUserSession(c)
+	userID, err := checkUserSession(c)
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 	}
@@ -113,7 +113,7 @@ func (h *urlHandler) URLToIDInJSON(c *gin.Context) {
 	c.Header("Content-Type", "application/json")
 	shortURL := processURL(c, h, requestJSON["url"])
 
-	h.uc.AddUserURL(userId, h.baseURL+string(shortURL), requestJSON["url"])
+	h.uc.AddUserURL(userID, h.baseURL+string(shortURL), requestJSON["url"])
 
 	log.Print("POST URL:", requestJSON["url"], " id: ", shortURL, "\n")
 
@@ -134,8 +134,7 @@ func (h *urlHandler) GetIDForUser(c *gin.Context) {
 				userURL.ShortURL = shortURL
 				urls = append(urls, userURL)
 			}
-			response, _ := json.Marshal(urls)
-			c.JSON(http.StatusOK, string(response))
+			c.JSON(http.StatusOK, urls)
 		} else {
 			c.String(http.StatusNoContent, "")
 		}
