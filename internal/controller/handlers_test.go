@@ -4,6 +4,8 @@ import (
 	"bytes"
 	gz "compress/gzip"
 	"github.com/Albitko/shortener/internal/config"
+	"github.com/gin-contrib/sessions"
+	"github.com/gin-contrib/sessions/cookie"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -66,17 +68,21 @@ func setupRouter() *gin.Engine {
 	cfg := config.NewConfig()
 
 	repository := repo.NewRepository("")
-	uc := usecase.NewURLConverter(repository)
+	userRepository := repo.NewUserRepo()
+	uc := usecase.NewURLConverter(repository, userRepository)
 	handler := NewURLHandler(uc, cfg.BaseURL)
 	router := gin.Default()
+	store := cookie.NewStore([]byte("secret"))
 
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
 	router.Use(gzip.Gzip(gzip.DefaultCompression, gzip.WithDecompressFn(gzip.DefaultDecompressHandle)))
+	router.Use(sessions.Sessions("session", store))
 
 	router.POST("/", handler.URLToID)
 	router.POST("/api/shorten", handler.URLToIDInJSON)
 	router.GET("/:id", handler.GetID)
+	router.GET("/api/user/urls", handler.GetIDForUser)
 	return router
 }
 
