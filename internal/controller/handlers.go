@@ -50,6 +50,9 @@ func checkUserSession(c *gin.Context) (string, error) {
 	session := sessions.Default(c)
 	randID := make([]byte, 8)
 	_, err := rand.Read(randID)
+	if err != nil {
+		log.Print("ERROR:", err, "\n")
+	}
 	userID := hex.EncodeToString(randID)
 
 	if value := session.Get("user"); value == nil {
@@ -77,7 +80,7 @@ func (h *urlHandler) GetID(c *gin.Context) {
 }
 
 func (h *urlHandler) URLToID(c *gin.Context) {
-	userId, err := checkUserSession(c)
+	userID, err := checkUserSession(c)
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 	}
@@ -89,7 +92,7 @@ func (h *urlHandler) URLToID(c *gin.Context) {
 
 	shortURL := processURL(c, h, string(originalURL))
 
-	h.uc.AddUserURL(userId, h.baseURL+string(shortURL), string(originalURL[:]))
+	h.uc.AddUserURL(userID, h.baseURL+string(shortURL), string(originalURL[:]))
 
 	log.Print("POST URL:", string(originalURL[:]), " id: ", shortURL, "\n")
 
@@ -127,8 +130,8 @@ func (h *urlHandler) GetIDForUser(c *gin.Context) {
 		if ok {
 			for shortURL, originalURL := range userURLs {
 				var userURL entity.UserURL
-				userURL.OriginalUrl = originalURL
-				userURL.ShortUrl = shortURL
+				userURL.OriginalURL = originalURL
+				userURL.ShortURL = shortURL
 				urls = append(urls, userURL)
 			}
 			response, _ := json.Marshal(urls)
