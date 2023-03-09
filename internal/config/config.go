@@ -15,6 +15,7 @@ func NewConfig() entity.Config {
 	flag.StringVar(&cfg.ServerAddress, "a", ":8080", "port to listen on")
 	flag.StringVar(&cfg.BaseURL, "b", "http://localhost:8080", "http://HOST:PORT")
 	flag.StringVar(&cfg.FileStoragePath, "f", "", "File that stores URL -> ID")
+	flag.StringVar(&cfg.CookiesStorageSecret, "c", "secret", "secret for cookies storage")
 	flag.Parse()
 
 	err := env.Parse(&cfg)

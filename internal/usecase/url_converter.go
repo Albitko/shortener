@@ -3,7 +3,6 @@ package usecase
 import (
 	"crypto/sha1"
 	"encoding/base64"
-
 	"github.com/Albitko/shortener/internal/entity"
 )
 
@@ -12,8 +11,14 @@ type repository interface {
 	GetURLByID(entity.URLID) (entity.OriginalURL, bool)
 }
 
+type userRepository interface {
+	AddUserURL(userID string, shortURL string, originalURL string)
+	GetUserURLsByUserID(userID string) (map[string]string, bool)
+}
+
 type urlConverter struct {
-	repo repository
+	repo     repository
+	userRepo userRepository
 }
 
 func (uc *urlConverter) URLToID(url entity.OriginalURL) entity.URLID {
@@ -29,8 +34,18 @@ func (uc *urlConverter) IDToURL(id entity.URLID) (entity.OriginalURL, bool) {
 	return url, ok
 }
 
-func NewURLConverter(r repository) *urlConverter {
+func (uc *urlConverter) UserIDToURLs(userID string) (map[string]string, bool) {
+	urls, ok := uc.userRepo.GetUserURLsByUserID(userID)
+	return urls, ok
+}
+
+func (uc *urlConverter) AddUserURL(userID string, shortURL string, originalURL string) {
+	uc.userRepo.AddUserURL(userID, shortURL, originalURL)
+}
+
+func NewURLConverter(r repository, u userRepository) *urlConverter {
 	return &urlConverter{
-		repo: r,
+		repo:     r,
+		userRepo: u,
 	}
 }
