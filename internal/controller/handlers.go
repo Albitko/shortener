@@ -1,13 +1,15 @@
 package controller
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
+	"github.com/gin-contrib/sessions"
+	"github.com/gin-gonic/gin"
 	"io"
 	"log"
 	"net/http"
 	"net/url"
-
-	"github.com/gin-gonic/gin"
 
 	"github.com/Albitko/shortener/internal/entity"
 )
@@ -15,6 +17,8 @@ import (
 type urlConverter interface {
 	URLToID(url entity.OriginalURL) entity.URLID
 	IDToURL(entity.URLID) (entity.OriginalURL, bool)
+	UserIDToURLs(userID string) (map[string]string, bool)
+	AddUserURL(userID string, shortURL string, originalURL string)
 }
 
 type urlHandler struct {
@@ -42,6 +46,24 @@ func processURL(c *gin.Context, h *urlHandler, originalURL string) entity.URLID 
 	return h.uc.URLToID(entity.OriginalURL(originalURL))
 }
 
+func checkUserSession(c *gin.Context) (string, error) {
+	session := sessions.Default(c)
+	randID := make([]byte, 8)
+	_, err := rand.Read(randID)
+	userID := hex.EncodeToString(randID)
+
+	if value := session.Get("user"); value == nil {
+		session.Set("user", userID)
+	} else {
+		return userID, nil
+	}
+	err = session.Save()
+	if err != nil {
+		c.String(200, err.Error())
+	}
+	return userID, nil
+}
+
 func (h *urlHandler) GetID(c *gin.Context) {
 	id := c.Param("id")
 
@@ -55,6 +77,11 @@ func (h *urlHandler) GetID(c *gin.Context) {
 }
 
 func (h *urlHandler) URLToID(c *gin.Context) {
+	userId, err := checkUserSession(c)
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+	}
+
 	originalURL, err := io.ReadAll(c.Request.Body)
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
@@ -62,12 +89,18 @@ func (h *urlHandler) URLToID(c *gin.Context) {
 
 	shortURL := processURL(c, h, string(originalURL))
 
+	h.uc.AddUserURL(userId, h.baseURL+string(shortURL), string(originalURL[:]))
+
 	log.Print("POST URL:", string(originalURL[:]), " id: ", shortURL, "\n")
 
 	c.String(http.StatusCreated, h.baseURL+string(shortURL))
 }
 
 func (h *urlHandler) URLToIDInJSON(c *gin.Context) {
+	userId, err := checkUserSession(c)
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+	}
 	requestJSON := make(map[string]string)
 	if err := json.NewDecoder(c.Request.Body).Decode(&requestJSON); err != nil {
 		log.Print("ERROR:", err, "\n")
@@ -77,7 +110,31 @@ func (h *urlHandler) URLToIDInJSON(c *gin.Context) {
 	c.Header("Content-Type", "application/json")
 	shortURL := processURL(c, h, requestJSON["url"])
 
+	h.uc.AddUserURL(userId, h.baseURL+string(shortURL), requestJSON["url"])
+
 	log.Print("POST URL:", requestJSON["url"], " id: ", shortURL, "\n")
 
 	c.String(http.StatusCreated, "{\"result\":\""+h.baseURL+string(shortURL)+"\"}")
+}
+
+func (h *urlHandler) GetIDForUser(c *gin.Context) {
+	var urls []entity.UserURL
+	session := sessions.Default(c)
+	if userID := session.Get("user"); userID == nil {
+		c.String(http.StatusNoContent, "There is no user in the session")
+	} else {
+		userURLs, ok := h.uc.UserIDToURLs(userID.(string))
+		if ok {
+			for shortURL, originalURL := range userURLs {
+				var userURL entity.UserURL
+				userURL.OriginalUrl = originalURL
+				userURL.ShortUrl = shortURL
+				urls = append(urls, userURL)
+			}
+			response, _ := json.Marshal(urls)
+			c.String(http.StatusOK, string(response))
+		} else {
+			c.String(http.StatusNoContent, "")
+		}
+	}
 }
