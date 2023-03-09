@@ -19,7 +19,7 @@ func Run(cfg entity.Config) {
 	userRepository := repo.NewUserRepo()
 	uc := usecase.NewURLConverter(repository, userRepository)
 	handler := controller.NewURLHandler(uc, cfg.BaseURL)
-	store := cookie.NewStore([]byte("secret"))
+	store := cookie.NewStore([]byte(cfg.CookiesStorageSecret))
 
 	router := gin.New()
 	router.Use(sessions.Sessions("session", store))
