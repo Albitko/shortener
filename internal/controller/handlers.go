@@ -135,7 +135,7 @@ func (h *urlHandler) GetIDForUser(c *gin.Context) {
 				urls = append(urls, userURL)
 			}
 			response, _ := json.Marshal(urls)
-			c.String(http.StatusOK, string(response))
+			c.JSON(http.StatusOK, string(response))
 		} else {
 			c.String(http.StatusNoContent, "")
 		}
