@@ -1,6 +1,7 @@
 package app
 
 import (
+	"github.com/Albitko/shortener/internal/repo"
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
@@ -10,7 +11,6 @@ import (
 	"github.com/Albitko/shortener/internal/controller"
 	"github.com/Albitko/shortener/internal/entity"
 	"github.com/Albitko/shortener/internal/usecase"
-	"github.com/Albitko/shortener/internal/usecase/repo"
 )
 
 func Run(cfg entity.Config) {

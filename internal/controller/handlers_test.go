@@ -4,6 +4,7 @@ import (
 	"bytes"
 	gz "compress/gzip"
 	"github.com/Albitko/shortener/internal/config"
+	"github.com/Albitko/shortener/internal/repo"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
 	"io"
@@ -17,7 +18,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/Albitko/shortener/internal/usecase"
-	"github.com/Albitko/shortener/internal/usecase/repo"
 )
 
 func testRequest(t *testing.T, ts *httptest.Server, method, path string, body []byte, needCompress bool) (int, http.Header, string) {
