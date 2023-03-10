@@ -3,6 +3,7 @@ package controller
 import (
 	"bytes"
 	gz "compress/gzip"
+	"context"
 	"github.com/Albitko/shortener/internal/config"
 	"github.com/Albitko/shortener/internal/repo"
 	"github.com/gin-contrib/sessions"
@@ -69,7 +70,9 @@ func setupRouter() *gin.Engine {
 
 	repository := repo.NewRepository("")
 	userRepository := repo.NewUserRepo()
-	uc := usecase.NewURLConverter(repository, userRepository)
+	db := repo.NewPostgres(context.Background(), cfg.DatabaseDSN)
+	defer db.Close()
+	uc := usecase.NewURLConverter(repository, userRepository, db)
 	handler := NewURLHandler(uc, cfg.BaseURL)
 	router := gin.Default()
 	store := cookie.NewStore([]byte("secret"))
