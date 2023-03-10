@@ -14,10 +14,13 @@ import (
 )
 
 func Run(cfg entity.Config) {
+	var db *repo.DB
 	repository := repo.NewRepository(cfg.FileStoragePath)
 	defer repository.Close()
-	db := repo.NewPostgres(context.Background(), cfg.DatabaseDSN)
-	defer db.Close()
+	if cfg.DatabaseDSN != "" {
+		db = repo.NewPostgres(context.Background(), cfg.DatabaseDSN)
+		defer db.Close()
+	}
 	userRepository := repo.NewUserRepo()
 	uc := usecase.NewURLConverter(repository, userRepository, db)
 	handler := controller.NewURLHandler(uc, cfg.BaseURL)
