@@ -16,6 +16,7 @@ func NewConfig() entity.Config {
 	flag.StringVar(&cfg.BaseURL, "b", "http://localhost:8080", "http://HOST:PORT")
 	flag.StringVar(&cfg.FileStoragePath, "f", "", "File that stores URL -> ID")
 	flag.StringVar(&cfg.CookiesStorageSecret, "c", "secret", "secret for cookies storage")
+	flag.StringVar(&cfg.DatabaseDSN, "d", "postgresql://localhost:5432", "connection URL for Postgres")
 	flag.Parse()
 
 	err := env.Parse(&cfg)
