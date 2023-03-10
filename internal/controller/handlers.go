@@ -19,6 +19,7 @@ type urlConverter interface {
 	IDToURL(entity.URLID) (entity.OriginalURL, bool)
 	UserIDToURLs(userID string) (map[string]string, bool)
 	AddUserURL(userID string, shortURL string, originalURL string)
+	PingDB() error
 }
 
 type urlHandler struct {
@@ -138,5 +139,14 @@ func (h *urlHandler) GetIDForUser(c *gin.Context) {
 		} else {
 			c.String(http.StatusNoContent, "")
 		}
+	}
+}
+
+func (h *urlHandler) CheckDBConnection(c *gin.Context) {
+	err := h.uc.PingDB()
+	if err != nil {
+		c.String(http.StatusInternalServerError, "")
+	} else {
+		c.String(http.StatusOK, "")
 	}
 }
