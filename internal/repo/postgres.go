@@ -8,6 +8,15 @@ import (
 	"time"
 )
 
+const schema = `
+ 	CREATE TABLE IF NOT EXISTS urls (
+ 		id serial primary key,
+ 		user_id text,
+ 		original_url text not null unique,
+ 		short_url text not null 
+ 	);
+ 	`
+
 type DB struct {
 	db  *sql.DB
 	ctx context.Context
@@ -33,6 +42,9 @@ func NewPostgres(ctx context.Context, psqlConn string) *DB {
 		log.Fatal(err)
 	}
 	if err = db.Ping(); err != nil {
+		log.Fatal(err)
+	}
+	if _, err = db.Exec(schema); err != nil {
 		log.Fatal(err)
 	}
 	return &DB{
