@@ -3,8 +3,8 @@ package usecase
 import (
 	"crypto/sha1"
 	"encoding/base64"
-
 	"github.com/Albitko/shortener/internal/entity"
+	"github.com/Albitko/shortener/internal/repo"
 )
 
 type repository interface {
@@ -12,8 +12,15 @@ type repository interface {
 	GetURLByID(entity.URLID) (entity.OriginalURL, bool)
 }
 
+type userRepository interface {
+	AddUserURL(userID string, shortURL string, originalURL string)
+	GetUserURLsByUserID(userID string) (map[string]string, bool)
+}
+
 type urlConverter struct {
-	repo repository
+	repo     repository
+	userRepo userRepository
+	pg       *repo.DB
 }
 
 func (uc *urlConverter) URLToID(url entity.OriginalURL) entity.URLID {
@@ -29,8 +36,24 @@ func (uc *urlConverter) IDToURL(id entity.URLID) (entity.OriginalURL, bool) {
 	return url, ok
 }
 
-func NewURLConverter(r repository) *urlConverter {
+func (uc *urlConverter) UserIDToURLs(userID string) (map[string]string, bool) {
+	urls, ok := uc.userRepo.GetUserURLsByUserID(userID)
+	return urls, ok
+}
+
+func (uc *urlConverter) AddUserURL(userID string, shortURL string, originalURL string) {
+	uc.userRepo.AddUserURL(userID, shortURL, originalURL)
+}
+
+func (uc *urlConverter) PingDB() error {
+	err := uc.pg.Ping()
+	return err
+}
+
+func NewURLConverter(r repository, u userRepository, d *repo.DB) *urlConverter {
 	return &urlConverter{
-		repo: r,
+		repo:     r,
+		userRepo: u,
+		pg:       d,
 	}
 }
