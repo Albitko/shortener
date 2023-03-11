@@ -4,6 +4,7 @@ import (
 	"crypto/sha1"
 	"encoding/base64"
 	"github.com/Albitko/shortener/internal/entity"
+	"github.com/Albitko/shortener/internal/repo"
 )
 
 type repository interface {
@@ -19,6 +20,7 @@ type userRepository interface {
 type urlConverter struct {
 	repo     repository
 	userRepo userRepository
+	pg       *repo.DB
 }
 
 func (uc *urlConverter) URLToID(url entity.OriginalURL) entity.URLID {
@@ -43,9 +45,15 @@ func (uc *urlConverter) AddUserURL(userID string, shortURL string, originalURL s
 	uc.userRepo.AddUserURL(userID, shortURL, originalURL)
 }
 
-func NewURLConverter(r repository, u userRepository) *urlConverter {
+func (uc *urlConverter) PingDB() error {
+	err := uc.pg.Ping()
+	return err
+}
+
+func NewURLConverter(r repository, u userRepository, d *repo.DB) *urlConverter {
 	return &urlConverter{
 		repo:     r,
 		userRepo: u,
+		pg:       d,
 	}
 }

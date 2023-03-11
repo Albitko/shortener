@@ -3,7 +3,9 @@ package controller
 import (
 	"bytes"
 	gz "compress/gzip"
+	"context"
 	"github.com/Albitko/shortener/internal/config"
+	"github.com/Albitko/shortener/internal/repo"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
 	"io"
@@ -17,7 +19,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/Albitko/shortener/internal/usecase"
-	"github.com/Albitko/shortener/internal/usecase/repo"
 )
 
 func testRequest(t *testing.T, ts *httptest.Server, method, path string, body []byte, needCompress bool) (int, http.Header, string) {
@@ -66,10 +67,14 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string, body []
 
 func setupRouter() *gin.Engine {
 	cfg := config.NewConfig()
-
+	var db *repo.DB
 	repository := repo.NewRepository("")
 	userRepository := repo.NewUserRepo()
-	uc := usecase.NewURLConverter(repository, userRepository)
+	if cfg.DatabaseDSN != "" {
+		db = repo.NewPostgres(context.Background(), cfg.DatabaseDSN)
+		defer db.Close()
+	}
+	uc := usecase.NewURLConverter(repository, userRepository, db)
 	handler := NewURLHandler(uc, cfg.BaseURL)
 	router := gin.Default()
 	store := cookie.NewStore([]byte("secret"))
