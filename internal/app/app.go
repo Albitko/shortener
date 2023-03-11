@@ -17,12 +17,15 @@ func Run(cfg entity.Config) {
 	var db *repo.DB
 	repository := repo.NewRepository(cfg.FileStoragePath)
 	defer repository.Close()
+	userRepository := repo.NewUserRepo()
+	uc := usecase.NewURLConverter(repository, userRepository, db)
 	if cfg.DatabaseDSN != "" {
 		db = repo.NewPostgres(context.Background(), cfg.DatabaseDSN)
 		defer db.Close()
+		uc = usecase.NewURLConverter(db, db, db)
+
 	}
-	userRepository := repo.NewUserRepo()
-	uc := usecase.NewURLConverter(repository, userRepository, db)
+
 	handler := controller.NewURLHandler(uc, cfg.BaseURL)
 	store := cookie.NewStore([]byte(cfg.CookiesStorageSecret))
 
