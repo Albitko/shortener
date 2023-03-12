@@ -122,7 +122,7 @@ func TestRouter(t *testing.T) {
 	assert.Equal(t, http.StatusCreated, cStatus)
 	assert.Equal(t, `http://localhost:8080/asnI5ScKGD`, cBody)
 
-	bStatus, _, body := testRequest(t, ts, "POST", "/api/shorten/batch", []byte(`[{"correlation_id": "qwerty123", "original_url": "https://instagram.com"}, {"correlation_id": "qwerty123", "original_url": "https://facebook.com"}]`), false)
+	bStatus, _, body := testRequest(t, ts, "POST", "/api/shorten/batch", []byte(`[{"correlation_id": "qwerty123", "original_url": "https://news.com"}, {"correlation_id": "qwerty123", "original_url": "https://mail.com"}]`), false)
 	assert.Equal(t, http.StatusCreated, bStatus)
-	assert.Equal(t, `[{"correlation_id":"qwerty123","short_url":"vS1bxa7BSy"},{"correlation_id":"qwerty123","short_url":"iEonOBJL5d"}]`, body)
+	assert.Equal(t, `[{"correlation_id":"qwerty123","short_url":"http://localhost:8080/_eHMpa2Qw4"},{"correlation_id":"qwerty123","short_url":"http://localhost:8080/aE8M5hOHJZ"}]`, body)
 }
