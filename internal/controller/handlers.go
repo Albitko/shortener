@@ -100,6 +100,32 @@ func (h *urlHandler) URLToID(c *gin.Context) {
 	c.String(http.StatusCreated, h.baseURL+string(shortURL))
 }
 
+func (h *urlHandler) BatchURLToIDInJSON(c *gin.Context) {
+	var response []entity.ModelURLBatchResponse
+	var requestJSON []entity.ModelURLBatchRequest
+	var shortenURL entity.ModelURLBatchResponse
+
+	userID, err := checkUserSession(c)
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+	}
+
+	if err := json.NewDecoder(c.Request.Body).Decode(&requestJSON); err != nil {
+		log.Print("ERROR:", err, "\n")
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	for _, val := range requestJSON {
+		shortenURL.CorrelationID = val.CorrelationID
+		shortenURL.ShortURL = string(processURL(c, h, val.OriginalURL))
+		response = append(response, shortenURL)
+		h.uc.AddUserURL(userID, h.baseURL+shortenURL.ShortURL, val.OriginalURL)
+		log.Print("POST URL:", val.OriginalURL, " id: ", h.baseURL+shortenURL.ShortURL, "\n")
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
 func (h *urlHandler) URLToIDInJSON(c *gin.Context) {
 	userID, err := checkUserSession(c)
 	if err != nil {
