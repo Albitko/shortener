@@ -68,26 +68,32 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string, body []
 func setupRouter() *gin.Engine {
 	cfg := config.NewConfig()
 	var db *repo.DB
-	repository := repo.NewRepository("")
+	repository := repo.NewRepository(cfg.FileStoragePath)
+	defer repository.Close()
 	userRepository := repo.NewUserRepo()
+	uc := usecase.NewURLConverter(repository, userRepository, db)
 	if cfg.DatabaseDSN != "" {
 		db = repo.NewPostgres(context.Background(), cfg.DatabaseDSN)
 		defer db.Close()
-	}
-	uc := usecase.NewURLConverter(repository, userRepository, db)
-	handler := NewURLHandler(uc, cfg.BaseURL)
-	router := gin.Default()
-	store := cookie.NewStore([]byte("secret"))
+		uc = usecase.NewURLConverter(db, db, db)
 
+	}
+
+	handler := NewURLHandler(uc, cfg.BaseURL)
+	store := cookie.NewStore([]byte(cfg.CookiesStorageSecret))
+
+	router := gin.New()
+	router.Use(sessions.Sessions("session", store))
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
 	router.Use(gzip.Gzip(gzip.DefaultCompression, gzip.WithDecompressFn(gzip.DefaultDecompressHandle)))
-	router.Use(sessions.Sessions("session", store))
 
 	router.POST("/", handler.URLToID)
 	router.POST("/api/shorten", handler.URLToIDInJSON)
+	router.POST("/api/shorten/batch", handler.BatchURLToIDInJSON)
 	router.GET("/:id", handler.GetID)
 	router.GET("/api/user/urls", handler.GetIDForUser)
+	router.GET("/ping", handler.CheckDBConnection)
 	return router
 }
 
@@ -116,4 +122,7 @@ func TestRouter(t *testing.T) {
 	assert.Equal(t, http.StatusCreated, cStatus)
 	assert.Equal(t, `http://localhost:8080/asnI5ScKGD`, cBody)
 
+	bStatus, _, body := testRequest(t, ts, "POST", "/api/shorten/batch", []byte(`[{"correlation_id": "qwerty123", "original_url": "https://instagram.com"}, {"correlation_id": "qwerty123", "original_url": "https://facebook.com"}]`), false)
+	assert.Equal(t, http.StatusOK, bStatus)
+	assert.Equal(t, `[{"correlation_id":"qwerty123","short_url":"vS1bxa7BSy"},{"correlation_id":"qwerty123","short_url":"iEonOBJL5d"}]`, body)
 }
