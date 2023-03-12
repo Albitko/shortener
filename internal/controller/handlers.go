@@ -123,7 +123,7 @@ func (h *urlHandler) BatchURLToIDInJSON(c *gin.Context) {
 		log.Print("POST URL:", val.OriginalURL, " id: ", h.baseURL+shortenURL.ShortURL, "\n")
 	}
 
-	c.JSON(http.StatusOK, response)
+	c.JSON(http.StatusCreated, response)
 }
 
 func (h *urlHandler) URLToIDInJSON(c *gin.Context) {
