@@ -3,6 +3,7 @@ package repo
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"github.com/Albitko/shortener/internal/entity"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"log"
@@ -13,10 +14,12 @@ const schema = `
  	CREATE TABLE IF NOT EXISTS urls (
  		id serial primary key,
  		user_id text,
- 		original_url text not null,
+ 		original_url text not null unique,
  		short_url text not null 
  	);
  	`
+
+var ErrURLAlreadyExists = errors.New("URL already exists")
 
 type DB struct {
 	db  *sql.DB
@@ -27,7 +30,7 @@ func (d *DB) Close() {
 	d.db.Close()
 }
 
-func (d *DB) AddURL(id entity.URLID, url entity.OriginalURL) {
+func (d *DB) AddURL(id entity.URLID, url entity.OriginalURL) error {
 	insertURL, err := d.db.Prepare("INSERT INTO urls (original_url, short_url) VALUES ($1, $2);")
 	if err != nil {
 		log.Println("ERROR :", err)
@@ -36,7 +39,9 @@ func (d *DB) AddURL(id entity.URLID, url entity.OriginalURL) {
 	_, err = insertURL.Exec(string(url), string(id))
 	if err != nil {
 		log.Println("ERROR :", err)
+		return ErrURLAlreadyExists
 	}
+	return nil
 }
 
 func (d *DB) GetURLByID(id entity.URLID) (entity.OriginalURL, bool) {
