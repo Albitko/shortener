@@ -94,15 +94,14 @@ func (h *urlHandler) URLToID(c *gin.Context) {
 	}
 
 	shortURL, urlError := processURL(c, h, string(originalURL))
-	if errors.Is(urlError, repo.ErrURLAlreadyExists) {
-		c.String(http.StatusConflict, "")
-		return
-	}
-
 	h.uc.AddUserURL(userID, h.baseURL+string(shortURL), string(originalURL[:]))
 
 	log.Print("POST URL:", string(originalURL[:]), " id: ", shortURL, "\n")
 
+	if errors.Is(urlError, repo.ErrURLAlreadyExists) {
+		c.String(http.StatusConflict, h.baseURL+string(shortURL))
+		return
+	}
 	c.String(http.StatusCreated, h.baseURL+string(shortURL))
 }
 
@@ -146,14 +145,14 @@ func (h *urlHandler) URLToIDInJSON(c *gin.Context) {
 	}
 	c.Header("Content-Type", "application/json")
 	shortURL, urlError := processURL(c, h, requestJSON["url"])
-	if errors.Is(urlError, repo.ErrURLAlreadyExists) {
-		c.String(http.StatusConflict, "")
-		return
-	}
-
 	h.uc.AddUserURL(userID, h.baseURL+string(shortURL), requestJSON["url"])
 
 	log.Print("POST URL:", requestJSON["url"], " id: ", shortURL, "\n")
+
+	if errors.Is(urlError, repo.ErrURLAlreadyExists) {
+		c.String(http.StatusConflict, "{\"result\":\""+h.baseURL+string(shortURL)+"\"}")
+		return
+	}
 
 	c.String(http.StatusCreated, "{\"result\":\""+h.baseURL+string(shortURL)+"\"}")
 }
