@@ -125,4 +125,8 @@ func TestRouter(t *testing.T) {
 	bStatus, _, body := testRequest(t, ts, "POST", "/api/shorten/batch", []byte(`[{"correlation_id": "qwerty123", "original_url": "https://news.com"}, {"correlation_id": "qwerty123", "original_url": "https://mail.com"}]`), false)
 	assert.Equal(t, http.StatusCreated, bStatus)
 	assert.Equal(t, `[{"correlation_id":"qwerty123","short_url":"http://localhost:8080/_eHMpa2Qw4"},{"correlation_id":"qwerty123","short_url":"http://localhost:8080/aE8M5hOHJZ"}]`, body)
+
+	pingStatus, _, _ := testRequest(t, ts, "GET", "/ping", nil, false)
+	assert.Equal(t, http.StatusInternalServerError, pingStatus)
+
 }
