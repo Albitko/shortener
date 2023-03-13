@@ -4,10 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"github.com/Albitko/shortener/internal/entity"
-	_ "github.com/jackc/pgx/v5/stdlib"
 	"log"
 	"time"
+
+	_ "github.com/jackc/pgx/v5/stdlib"
+
+	"github.com/Albitko/shortener/internal/entity"
 )
 
 const schema = `
