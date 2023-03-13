@@ -50,20 +50,21 @@ func NewRepository(path string) *memRepository {
 	}
 }
 
-func (r *memRepository) AddURL(id entity.URLID, url entity.OriginalURL) {
+func (r *memRepository) AddURL(id entity.URLID, url entity.OriginalURL) error {
 	r.Lock()
 	defer r.Unlock()
 	r.storageCache[id] = url
 
 	if r.isFileStorageSet {
 		if _, err := r.writer.WriteString(string(id) + "|" + string(url) + "\n"); err != nil {
-			return
+			return err
 		}
 		err := r.writer.Flush()
 		if err != nil {
-			return
+			return err
 		}
 	}
+	return nil
 }
 
 func (r *memRepository) GetURLByID(id entity.URLID) (entity.OriginalURL, bool) {

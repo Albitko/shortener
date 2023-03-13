@@ -3,7 +3,11 @@ package controller
 import (
 	"bytes"
 	gz "compress/gzip"
+	"context"
 	"github.com/Albitko/shortener/internal/config"
+	"github.com/Albitko/shortener/internal/repo"
+	"github.com/gin-contrib/sessions"
+	"github.com/gin-contrib/sessions/cookie"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -15,7 +19,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/Albitko/shortener/internal/usecase"
-	"github.com/Albitko/shortener/internal/usecase/repo"
 )
 
 func testRequest(t *testing.T, ts *httptest.Server, method, path string, body []byte, needCompress bool) (int, http.Header, string) {
@@ -64,19 +67,33 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string, body []
 
 func setupRouter() *gin.Engine {
 	cfg := config.NewConfig()
+	var db *repo.DB
+	repository := repo.NewRepository(cfg.FileStoragePath)
+	defer repository.Close()
+	userRepository := repo.NewUserRepo()
+	uc := usecase.NewURLConverter(repository, userRepository, db)
+	if cfg.DatabaseDSN != "" {
+		db = repo.NewPostgres(context.Background(), cfg.DatabaseDSN)
+		defer db.Close()
+		uc = usecase.NewURLConverter(db, db, db)
 
-	repository := repo.NewRepository("")
-	uc := usecase.NewURLConverter(repository)
+	}
+
 	handler := NewURLHandler(uc, cfg.BaseURL)
-	router := gin.Default()
+	store := cookie.NewStore([]byte(cfg.CookiesStorageSecret))
 
+	router := gin.New()
+	router.Use(sessions.Sessions("session", store))
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
 	router.Use(gzip.Gzip(gzip.DefaultCompression, gzip.WithDecompressFn(gzip.DefaultDecompressHandle)))
 
 	router.POST("/", handler.URLToID)
 	router.POST("/api/shorten", handler.URLToIDInJSON)
+	router.POST("/api/shorten/batch", handler.BatchURLToIDInJSON)
 	router.GET("/:id", handler.GetID)
+	router.GET("/api/user/urls", handler.GetIDForUser)
+	router.GET("/ping", handler.CheckDBConnection)
 	return router
 }
 
@@ -104,5 +121,12 @@ func TestRouter(t *testing.T) {
 	cStatus, _, cBody := testRequest(t, ts, "POST", "/", []byte(`https://bing.com`), true)
 	assert.Equal(t, http.StatusCreated, cStatus)
 	assert.Equal(t, `http://localhost:8080/asnI5ScKGD`, cBody)
+
+	bStatus, _, body := testRequest(t, ts, "POST", "/api/shorten/batch", []byte(`[{"correlation_id": "qwerty123", "original_url": "https://news.com"}, {"correlation_id": "qwerty123", "original_url": "https://mail.com"}]`), false)
+	assert.Equal(t, http.StatusCreated, bStatus)
+	assert.Equal(t, `[{"correlation_id":"qwerty123","short_url":"http://localhost:8080/_eHMpa2Qw4"},{"correlation_id":"qwerty123","short_url":"http://localhost:8080/aE8M5hOHJZ"}]`, body)
+
+	pingStatus, _, _ := testRequest(t, ts, "GET", "/ping", nil, false)
+	assert.Equal(t, http.StatusInternalServerError, pingStatus)
 
 }
