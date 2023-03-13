@@ -4,6 +4,8 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
+	"github.com/Albitko/shortener/internal/repo"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"io"
@@ -15,7 +17,7 @@ import (
 )
 
 type urlConverter interface {
-	URLToID(url entity.OriginalURL) entity.URLID
+	URLToID(url entity.OriginalURL) (entity.URLID, error)
 	IDToURL(entity.URLID) (entity.OriginalURL, bool)
 	UserIDToURLs(userID string) (map[string]string, bool)
 	AddUserURL(userID string, shortURL string, originalURL string)
@@ -38,7 +40,7 @@ func NewURLHandler(u urlConverter, envBaseURL string) *urlHandler {
 	}
 }
 
-func processURL(c *gin.Context, h *urlHandler, originalURL string) entity.URLID {
+func processURL(c *gin.Context, h *urlHandler, originalURL string) (entity.URLID, error) {
 	_, err := url.ParseRequestURI(originalURL)
 	if err != nil {
 		c.String(http.StatusBadRequest, "Should be URL in the body")
@@ -91,7 +93,11 @@ func (h *urlHandler) URLToID(c *gin.Context) {
 		c.AbortWithStatus(http.StatusInternalServerError)
 	}
 
-	shortURL := processURL(c, h, string(originalURL))
+	shortURL, urlError := processURL(c, h, string(originalURL))
+	if errors.Is(urlError, repo.ErrURLAlreadyExists) {
+		c.String(http.StatusConflict, "")
+		return
+	}
 
 	h.uc.AddUserURL(userID, h.baseURL+string(shortURL), string(originalURL[:]))
 
@@ -117,7 +123,8 @@ func (h *urlHandler) BatchURLToIDInJSON(c *gin.Context) {
 	}
 	for _, val := range requestJSON {
 		shortenURL.CorrelationID = val.CorrelationID
-		shortenURL.ShortURL = h.baseURL + string(processURL(c, h, val.OriginalURL))
+		shortID, _ := processURL(c, h, val.OriginalURL)
+		shortenURL.ShortURL = h.baseURL + string(shortID)
 		response = append(response, shortenURL)
 		h.uc.AddUserURL(userID, h.baseURL+shortenURL.ShortURL, val.OriginalURL)
 		log.Print("POST URL:", val.OriginalURL, " id: ", shortenURL.ShortURL, "\n")
@@ -138,7 +145,11 @@ func (h *urlHandler) URLToIDInJSON(c *gin.Context) {
 		return
 	}
 	c.Header("Content-Type", "application/json")
-	shortURL := processURL(c, h, requestJSON["url"])
+	shortURL, urlError := processURL(c, h, requestJSON["url"])
+	if errors.Is(urlError, repo.ErrURLAlreadyExists) {
+		c.String(http.StatusConflict, "")
+		return
+	}
 
 	h.uc.AddUserURL(userID, h.baseURL+string(shortURL), requestJSON["url"])
 
