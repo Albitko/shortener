@@ -2,6 +2,7 @@ package repo
 
 import (
 	"bufio"
+	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -57,11 +58,11 @@ func (r *memRepository) AddURL(id entity.URLID, url entity.OriginalURL) error {
 
 	if r.isFileStorageSet {
 		if _, err := r.writer.WriteString(string(id) + "|" + string(url) + "\n"); err != nil {
-			return err
+			return fmt.Errorf("AddURL failed write string: %w", err)
 		}
 		err := r.writer.Flush()
 		if err != nil {
-			return err
+			return fmt.Errorf("AddURL failed flush: %w", err)
 		}
 	}
 	return nil
