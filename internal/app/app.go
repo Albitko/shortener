@@ -45,7 +45,7 @@ func Run(cfg entity.Config) {
 
 	err := router.Run(cfg.ServerAddress)
 	if err != nil {
-		log.Fatal("Couldn't  start server ", err)
+		log.Print("Couldn't  start server ", err)
 		return
 	}
 }
