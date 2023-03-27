@@ -3,7 +3,6 @@ package usecase
 import (
 	"crypto/sha1"
 	"encoding/base64"
-	"fmt"
 
 	"github.com/Albitko/shortener/internal/entity"
 	"github.com/Albitko/shortener/internal/repo"
@@ -49,7 +48,7 @@ func (uc *urlConverter) AddUserURL(userID string, shortURL string, originalURL s
 
 func (uc *urlConverter) PingDB() error {
 	err := uc.pg.Ping()
-	return fmt.Errorf("PingDB failed: %w", err)
+	return err
 }
 
 func NewURLConverter(r repository, u userRepository, d *repo.DB) *urlConverter {
