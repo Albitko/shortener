@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"log"
 	"time"
 
@@ -114,7 +113,7 @@ func (d *DB) Ping() error {
 	if err != nil {
 		log.Print("ERROR: ", err, "\n")
 	}
-	return fmt.Errorf("PingContext failed: %w", err)
+	return err
 }
 
 func NewPostgres(ctx context.Context, psqlConn string) *DB {

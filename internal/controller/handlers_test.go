@@ -4,14 +4,16 @@ import (
 	"bytes"
 	gz "compress/gzip"
 	"context"
-	"github.com/Albitko/shortener/internal/config"
-	"github.com/Albitko/shortener/internal/repo"
-	"github.com/gin-contrib/sessions"
-	"github.com/gin-contrib/sessions/cookie"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/gin-contrib/sessions"
+	"github.com/gin-contrib/sessions/cookie"
+
+	"github.com/Albitko/shortener/internal/config"
+	"github.com/Albitko/shortener/internal/repo"
 
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
@@ -76,7 +78,6 @@ func setupRouter() *gin.Engine {
 		db = repo.NewPostgres(context.Background(), cfg.DatabaseDSN)
 		defer db.Close()
 		uc = usecase.NewURLConverter(db, db, db)
-
 	}
 
 	handler := NewURLHandler(uc, cfg.BaseURL)
@@ -98,7 +99,6 @@ func setupRouter() *gin.Engine {
 }
 
 func TestRouter(t *testing.T) {
-
 	router := setupRouter()
 	ts := httptest.NewServer(router)
 	defer ts.Close()
@@ -128,5 +128,4 @@ func TestRouter(t *testing.T) {
 
 	pingStatus, _, _ := testRequest(t, ts, "GET", "/ping", nil, false)
 	assert.Equal(t, http.StatusInternalServerError, pingStatus)
-
 }

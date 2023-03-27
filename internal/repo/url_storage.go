@@ -21,7 +21,7 @@ type memRepository struct {
 
 func NewRepository(path string) *memRepository {
 	dataFromFile := make(map[entity.URLID]entity.OriginalURL)
-	file, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_APPEND|os.O_SYNC, 0777)
+	file, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_APPEND|os.O_SYNC, 0o777)
 	isFileSet := false
 
 	if path != "" {
@@ -74,6 +74,7 @@ func (r *memRepository) GetURLByID(id entity.URLID) (entity.OriginalURL, bool) {
 	url, ok := r.storageCache[id]
 	return url, ok
 }
+
 func (r *memRepository) Close() error {
 	return r.fileStorage.Close()
 }

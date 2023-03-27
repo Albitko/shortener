@@ -25,7 +25,6 @@ func Run(cfg entity.Config) {
 		db = repo.NewPostgres(context.Background(), cfg.DatabaseDSN)
 		defer db.Close()
 		uc = usecase.NewURLConverter(db, db, db)
-
 	}
 
 	handler := controller.NewURLHandler(uc, cfg.BaseURL)

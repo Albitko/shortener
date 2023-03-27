@@ -56,6 +56,7 @@ func checkUserSession(c *gin.Context) (string, error) {
 	_, err := rand.Read(randID)
 	if err != nil {
 		log.Print("ERROR:", err, "\n")
+		return "", err
 	}
 	userID := hex.EncodeToString(randID)
 
@@ -95,9 +96,9 @@ func (h *urlHandler) URLToID(c *gin.Context) {
 	}
 
 	shortURL, urlError := processURL(c, h, string(originalURL))
-	h.uc.AddUserURL(userID, h.baseURL+string(shortURL), string(originalURL[:]))
+	h.uc.AddUserURL(userID, h.baseURL+string(shortURL), string(originalURL))
 
-	log.Print("POST URL:", string(originalURL[:]), " id: ", shortURL, "\n")
+	log.Print("POST URL:", string(originalURL), " id: ", shortURL, "\n")
 
 	if errors.Is(urlError, repo.ErrURLAlreadyExists) {
 		c.String(http.StatusConflict, h.baseURL+string(shortURL))
@@ -107,7 +108,6 @@ func (h *urlHandler) URLToID(c *gin.Context) {
 }
 
 func (h *urlHandler) BatchURLToIDInJSON(c *gin.Context) {
-	var response []entity.ModelURLBatchResponse
 	var requestJSON []entity.ModelURLBatchRequest
 	var shortenURL entity.ModelURLBatchResponse
 
@@ -121,6 +121,9 @@ func (h *urlHandler) BatchURLToIDInJSON(c *gin.Context) {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
+
+	response := make([]entity.ModelURLBatchResponse, 0, len(requestJSON))
+
 	for _, val := range requestJSON {
 		shortenURL.CorrelationID = val.CorrelationID
 		shortID, _ := processURL(c, h, val.OriginalURL)

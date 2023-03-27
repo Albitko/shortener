@@ -1,7 +1,9 @@
 package entity
 
-type URLID string
-type OriginalURL string
+type (
+	URLID       string
+	OriginalURL string
+)
 
 type Config struct {
 	ServerAddress        string `env:"SERVER_ADDRESS"`
