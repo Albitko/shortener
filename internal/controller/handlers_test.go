@@ -105,9 +105,9 @@ func TestRouter(t *testing.T) {
 
 	pStatus, _, body := testRequest(t, ts, "POST", "/", []byte("https://google.com"), false)
 	assert.Equal(t, http.StatusCreated, pStatus)
-	assert.Equal(t, "http://localhost:8080/cv6VxVduxj", body)
+	assert.Equal(t, "http://localhost:8080/BQRvJsg-jI", body)
 
-	gStatus, gHeaders, _ := testRequest(t, ts, "GET", "/cv6VxVduxj", nil, false)
+	gStatus, gHeaders, _ := testRequest(t, ts, "GET", "/BQRvJsg-jI", nil, false)
 	assert.Equal(t, http.StatusTemporaryRedirect, gStatus)
 	assert.Equal(t, "https://google.com", gHeaders.Get("Location"))
 
@@ -116,15 +116,15 @@ func TestRouter(t *testing.T) {
 
 	jStatus, _, body := testRequest(t, ts, "POST", "/api/shorten", []byte(`{"url":"https://yandex.ru"}`), false)
 	assert.Equal(t, http.StatusCreated, jStatus)
-	assert.Equal(t, `{"result":"http://localhost:8080/4eVSAfM3-P"}`, body)
+	assert.Equal(t, `{"result":"http://localhost:8080/FgAJzmBKgR"}`, body)
 
 	cStatus, _, cBody := testRequest(t, ts, "POST", "/", []byte(`https://bing.com`), true)
 	assert.Equal(t, http.StatusCreated, cStatus)
-	assert.Equal(t, `http://localhost:8080/asnI5ScKGD`, cBody)
+	assert.Equal(t, `http://localhost:8080/DVgElL_ZX_`, cBody)
 
 	bStatus, _, body := testRequest(t, ts, "POST", "/api/shorten/batch", []byte(`[{"correlation_id": "qwerty123", "original_url": "https://news.com"}, {"correlation_id": "qwerty123", "original_url": "https://mail.com"}]`), false)
 	assert.Equal(t, http.StatusCreated, bStatus)
-	assert.Equal(t, `[{"correlation_id":"qwerty123","short_url":"http://localhost:8080/_eHMpa2Qw4"},{"correlation_id":"qwerty123","short_url":"http://localhost:8080/aE8M5hOHJZ"}]`, body)
+	assert.Equal(t, `[{"correlation_id":"qwerty123","short_url":"http://localhost:8080/3aAJHI89Bk"},{"correlation_id":"qwerty123","short_url":"http://localhost:8080/ojVFbv-Meo"}]`, body)
 
 	pingStatus, _, _ := testRequest(t, ts, "GET", "/ping", nil, false)
 	assert.Equal(t, http.StatusInternalServerError, pingStatus)

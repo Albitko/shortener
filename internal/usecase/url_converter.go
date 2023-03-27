@@ -1,7 +1,7 @@
 package usecase
 
 import (
-	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/base64"
 
 	"github.com/Albitko/shortener/internal/entity"
@@ -25,7 +25,7 @@ type urlConverter struct {
 }
 
 func (uc *urlConverter) URLToID(url entity.OriginalURL) (entity.URLID, error) {
-	hasher := sha1.New()
+	hasher := sha256.New()
 	hasher.Write([]byte(url))
 	id := entity.URLID(base64.URLEncoding.EncodeToString(hasher.Sum(nil))[:10])
 	err := uc.repo.AddURL(id, url)
