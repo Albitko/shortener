@@ -18,7 +18,8 @@ const schema = `
  		id serial primary key,
  		user_id text,
  		original_url text not null unique,
- 		short_url text not null 
+ 		short_url text not null,
+ 		is_delete boolean DEFAULT FALSE
  	);
  	`
 
