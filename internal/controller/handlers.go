@@ -107,6 +107,10 @@ func (h *urlHandler) URLToID(c *gin.Context) {
 	c.String(http.StatusCreated, h.baseURL+string(shortURL))
 }
 
+func (h *urlHandler) DeleteURL(c *gin.Context) {
+
+}
+
 func (h *urlHandler) BatchURLToIDInJSON(c *gin.Context) {
 	var requestJSON []entity.ModelURLBatchRequest
 	var shortenURL entity.ModelURLBatchResponse

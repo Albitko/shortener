@@ -42,6 +42,7 @@ func Run(cfg entity.Config) {
 	router.GET("/:id", handler.GetID)
 	router.GET("/api/user/urls", handler.GetIDForUser)
 	router.GET("/ping", handler.CheckDBConnection)
+	router.DELETE("/api/user/urls", handler.DeleteURL)
 
 	err := router.Run(cfg.ServerAddress)
 	if err != nil {
