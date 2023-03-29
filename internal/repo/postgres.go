@@ -47,20 +47,19 @@ func (d *DB) AddURL(id entity.URLID, url entity.OriginalURL) {
 	}
 }
 
-func (d *DB) GetURLByID(id entity.URLID) (entity.OriginalURL, bool) {
+func (d *DB) GetURLByID(id entity.URLID) (entity.OriginalURL, error) {
 	var originalURL string
 	selectOriginalURL, err := d.db.Prepare("SELECT original_url FROM urls WHERE short_url=$1;")
 	if err != nil {
-		return "", false
+		return "", err
 	}
 	defer selectOriginalURL.Close()
 
 	if err = selectOriginalURL.QueryRow(string(id)).Scan(&originalURL); err != nil {
-		log.Println("ERR2", err)
-
-		return "", false
+		log.Println("ERR: ", err)
+		return "", err
 	}
-	return entity.OriginalURL(originalURL), true
+	return entity.OriginalURL(originalURL), nil
 }
 
 func (d *DB) AddUserURL(userID string, shortURL string, originalURL string) error {

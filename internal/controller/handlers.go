@@ -19,7 +19,7 @@ import (
 
 type urlConverter interface {
 	URLToID(entity.OriginalURL, string) (entity.URLID, error)
-	IDToURL(entity.URLID) (entity.OriginalURL, bool)
+	IDToURL(entity.URLID) (entity.OriginalURL, error)
 	UserIDToURLs(userID string) (map[string]string, bool)
 	AddUserURL(userID string, shortURL string, originalURL string)
 	PingDB() error
@@ -75,7 +75,8 @@ func checkUserSession(c *gin.Context) (string, error) {
 func (h *urlHandler) GetID(c *gin.Context) {
 	id := c.Param("id")
 
-	if originalURL, ok := h.uc.IDToURL(entity.URLID(id)); ok {
+	originalURL, err := h.uc.IDToURL(entity.URLID(id))
+	if err == nil {
 		c.Header("Location", string(originalURL))
 		log.Print("GET id:", id, " URL: ", originalURL, "\n")
 		c.Status(http.StatusTemporaryRedirect)
@@ -108,7 +109,20 @@ func (h *urlHandler) URLToID(c *gin.Context) {
 }
 
 func (h *urlHandler) DeleteURL(c *gin.Context) {
+	userID, err := checkUserSession(c)
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+	}
 
+	var IDsForDelete []string
+	if err := json.NewDecoder(c.Request.Body).Decode(&IDsForDelete); err != nil {
+		log.Print("ERROR decoding IDs for deletion:", err, "\n")
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	log.Println(userID, IDsForDelete)
+	c.String(http.StatusAccepted, "")
 }
 
 func (h *urlHandler) BatchURLToIDInJSON(c *gin.Context) {

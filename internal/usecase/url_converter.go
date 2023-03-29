@@ -10,7 +10,7 @@ import (
 
 type repository interface {
 	AddURL(entity.URLID, entity.OriginalURL)
-	GetURLByID(entity.URLID) (entity.OriginalURL, bool)
+	GetURLByID(entity.URLID) (entity.OriginalURL, error)
 }
 
 type userRepository interface {
@@ -33,10 +33,9 @@ func (uc *urlConverter) URLToID(url entity.OriginalURL, userID string) (entity.U
 	return id, err
 }
 
-func (uc *urlConverter) IDToURL(id entity.URLID) (entity.OriginalURL, bool) {
-	url, ok := uc.repo.GetURLByID(id)
-
-	return url, ok
+func (uc *urlConverter) IDToURL(id entity.URLID) (entity.OriginalURL, error) {
+	url, err := uc.repo.GetURLByID(id)
+	return url, err
 }
 
 func (uc *urlConverter) UserIDToURLs(userID string) (map[string]string, bool) {

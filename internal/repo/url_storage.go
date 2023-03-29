@@ -2,6 +2,7 @@ package repo
 
 import (
 	"bufio"
+	"errors"
 	"log"
 	"os"
 	"strings"
@@ -66,11 +67,17 @@ func (r *memRepository) AddURL(id entity.URLID, url entity.OriginalURL) {
 	}
 }
 
-func (r *memRepository) GetURLByID(id entity.URLID) (entity.OriginalURL, bool) {
+func (r *memRepository) GetURLByID(id entity.URLID) (entity.OriginalURL, error) {
 	r.RLock()
 	defer r.RUnlock()
+	var err error
 	url, ok := r.storageCache[id]
-	return url, ok
+	if ok {
+		err = nil
+	} else {
+		err = errors.New("no needed value in map")
+	}
+	return url, err
 }
 
 func (r *memRepository) Close() error {
