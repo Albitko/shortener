@@ -18,7 +18,7 @@ import (
 )
 
 type urlConverter interface {
-	URLToID(url entity.OriginalURL) (entity.URLID, error)
+	URLToID(entity.OriginalURL, string, string) (entity.URLID, error)
 	IDToURL(entity.URLID) (entity.OriginalURL, bool)
 	UserIDToURLs(userID string) (map[string]string, bool)
 	AddUserURL(userID string, shortURL string, originalURL string)
@@ -41,13 +41,13 @@ func NewURLHandler(u urlConverter, envBaseURL string) *urlHandler {
 	}
 }
 
-func processURL(c *gin.Context, h *urlHandler, originalURL string) (entity.URLID, error) {
+func processURL(c *gin.Context, h *urlHandler, originalURL, userID string) (entity.URLID, error) {
 	_, err := url.ParseRequestURI(originalURL)
 	if err != nil {
 		c.String(http.StatusBadRequest, "Should be URL in the body")
 		log.Print("ERROR:", err, "\n")
 	}
-	return h.uc.URLToID(entity.OriginalURL(originalURL))
+	return h.uc.URLToID(entity.OriginalURL(originalURL), userID, h.baseURL)
 }
 
 func checkUserSession(c *gin.Context) (string, error) {
@@ -95,8 +95,8 @@ func (h *urlHandler) URLToID(c *gin.Context) {
 		c.AbortWithStatus(http.StatusInternalServerError)
 	}
 
-	shortURL, urlError := processURL(c, h, string(originalURL))
-	h.uc.AddUserURL(userID, h.baseURL+string(shortURL), string(originalURL))
+	shortURL, urlError := processURL(c, h, string(originalURL), userID)
+	//h.uc.AddUserURL(userID, h.baseURL+string(shortURL), string(originalURL))
 
 	log.Print("POST URL:", string(originalURL), " id: ", shortURL, "\n")
 
@@ -130,10 +130,10 @@ func (h *urlHandler) BatchURLToIDInJSON(c *gin.Context) {
 
 	for _, val := range requestJSON {
 		shortenURL.CorrelationID = val.CorrelationID
-		shortID, _ := processURL(c, h, val.OriginalURL)
+		shortID, _ := processURL(c, h, val.OriginalURL, userID)
 		shortenURL.ShortURL = h.baseURL + string(shortID)
 		response = append(response, shortenURL)
-		h.uc.AddUserURL(userID, h.baseURL+shortenURL.ShortURL, val.OriginalURL)
+		//h.uc.AddUserURL(userID, h.baseURL+shortenURL.ShortURL, val.OriginalURL)
 		log.Print("POST URL:", val.OriginalURL, " id: ", shortenURL.ShortURL, "\n")
 	}
 
@@ -152,8 +152,8 @@ func (h *urlHandler) URLToIDInJSON(c *gin.Context) {
 		return
 	}
 	c.Header("Content-Type", "application/json")
-	shortURL, urlError := processURL(c, h, requestJSON["url"])
-	h.uc.AddUserURL(userID, h.baseURL+string(shortURL), requestJSON["url"])
+	shortURL, urlError := processURL(c, h, requestJSON["url"], userID)
+	//h.uc.AddUserURL(userID, h.baseURL+string(shortURL), requestJSON["url"])
 
 	log.Print("POST URL:", requestJSON["url"], " id: ", shortURL, "\n")
 

@@ -24,10 +24,11 @@ type urlConverter struct {
 	pg       *repo.DB
 }
 
-func (uc *urlConverter) URLToID(url entity.OriginalURL) (entity.URLID, error) {
+func (uc *urlConverter) URLToID(url entity.OriginalURL, userID string, baseURL string) (entity.URLID, error) {
 	hasher := sha256.New()
 	hasher.Write([]byte(url))
 	id := entity.URLID(base64.URLEncoding.EncodeToString(hasher.Sum(nil))[:10])
+	uc.userRepo.AddUserURL(userID, baseURL+string(id), string(url))
 	err := uc.repo.AddURL(id, url)
 	return id, err
 }
