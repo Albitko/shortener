@@ -176,7 +176,7 @@ func (h *urlHandler) GetIDForUser(c *gin.Context) {
 			for shortURL, originalURL := range userURLs {
 				var userURL entity.UserURL
 				userURL.OriginalURL = originalURL
-				userURL.ShortURL = shortURL
+				userURL.ShortURL = h.baseURL + shortURL
 				urls = append(urls, userURL)
 			}
 			c.JSON(http.StatusOK, urls)
