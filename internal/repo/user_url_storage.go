@@ -9,11 +9,12 @@ type userMemRepository struct {
 	userStorageCache map[string]map[string]string
 }
 
-func (r *userMemRepository) AddUserURL(userID string, shortURL string, originalURL string) {
+func (r *userMemRepository) AddUserURL(userID string, shortURL string, originalURL string) error {
 	r.Lock()
 	defer r.Unlock()
 	r.userStorageCache[userID] = make(map[string]string)
 	r.userStorageCache[userID][shortURL] = originalURL
+	return nil
 }
 
 func (r *userMemRepository) GetUserURLsByUserID(userID string) (map[string]string, bool) {

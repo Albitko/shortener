@@ -34,7 +34,7 @@ func (d *DB) Close() {
 	d.db.Close()
 }
 
-func (d *DB) AddURL(id entity.URLID, url entity.OriginalURL) error {
+func (d *DB) AddURL(id entity.URLID, url entity.OriginalURL) {
 	insertURL, err := d.db.Prepare("INSERT INTO urls (original_url, short_url) VALUES ($1, $2);")
 	if err != nil {
 		log.Println("ERROR :", err)
@@ -43,9 +43,8 @@ func (d *DB) AddURL(id entity.URLID, url entity.OriginalURL) error {
 	_, err = insertURL.Exec(string(url), string(id))
 	if err != nil {
 		log.Println("ERROR :", err)
-		return ErrURLAlreadyExists
+		//return ErrURLAlreadyExists
 	}
-	return nil
 }
 
 func (d *DB) GetURLByID(id entity.URLID) (entity.OriginalURL, bool) {
@@ -57,21 +56,26 @@ func (d *DB) GetURLByID(id entity.URLID) (entity.OriginalURL, bool) {
 	defer selectOriginalURL.Close()
 
 	if err = selectOriginalURL.QueryRow(string(id)).Scan(&originalURL); err != nil {
+		log.Println("ERR2", err)
+
 		return "", false
 	}
 	return entity.OriginalURL(originalURL), true
 }
 
-func (d *DB) AddUserURL(userID string, shortURL string, originalURL string) {
+func (d *DB) AddUserURL(userID string, shortURL string, originalURL string) error {
 	insertUserURL, err := d.db.Prepare("INSERT INTO urls (user_id, original_url, short_url) VALUES ($1, $2, $3);")
 	if err != nil {
 		log.Println("ERROR 1:", err)
+		return err
 	}
 	defer insertUserURL.Close()
 	_, err = insertUserURL.Exec(userID, originalURL, shortURL)
 	if err != nil {
 		log.Println("ERROR 2:", err)
+		return ErrURLAlreadyExists
 	}
+	return nil
 }
 
 func (d *DB) GetUserURLsByUserID(userID string) (map[string]string, bool) {

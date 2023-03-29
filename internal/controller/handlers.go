@@ -18,7 +18,7 @@ import (
 )
 
 type urlConverter interface {
-	URLToID(entity.OriginalURL, string, string) (entity.URLID, error)
+	URLToID(entity.OriginalURL, string) (entity.URLID, error)
 	IDToURL(entity.URLID) (entity.OriginalURL, bool)
 	UserIDToURLs(userID string) (map[string]string, bool)
 	AddUserURL(userID string, shortURL string, originalURL string)
@@ -47,7 +47,7 @@ func processURL(c *gin.Context, h *urlHandler, originalURL, userID string) (enti
 		c.String(http.StatusBadRequest, "Should be URL in the body")
 		log.Print("ERROR:", err, "\n")
 	}
-	return h.uc.URLToID(entity.OriginalURL(originalURL), userID, h.baseURL)
+	return h.uc.URLToID(entity.OriginalURL(originalURL), userID)
 }
 
 func checkUserSession(c *gin.Context) (string, error) {

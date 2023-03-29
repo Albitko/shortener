@@ -9,12 +9,12 @@ import (
 )
 
 type repository interface {
-	AddURL(entity.URLID, entity.OriginalURL) error
+	AddURL(entity.URLID, entity.OriginalURL)
 	GetURLByID(entity.URLID) (entity.OriginalURL, bool)
 }
 
 type userRepository interface {
-	AddUserURL(userID string, shortURL string, originalURL string)
+	AddUserURL(userID string, shortURL string, originalURL string) error
 	GetUserURLsByUserID(userID string) (map[string]string, bool)
 }
 
@@ -24,17 +24,18 @@ type urlConverter struct {
 	pg       *repo.DB
 }
 
-func (uc *urlConverter) URLToID(url entity.OriginalURL, userID string, baseURL string) (entity.URLID, error) {
+func (uc *urlConverter) URLToID(url entity.OriginalURL, userID string) (entity.URLID, error) {
 	hasher := sha256.New()
 	hasher.Write([]byte(url))
 	id := entity.URLID(base64.URLEncoding.EncodeToString(hasher.Sum(nil))[:10])
-	uc.userRepo.AddUserURL(userID, baseURL+string(id), string(url))
-	err := uc.repo.AddURL(id, url)
+	err := uc.userRepo.AddUserURL(userID, string(id), string(url))
+	uc.repo.AddURL(id, url)
 	return id, err
 }
 
 func (uc *urlConverter) IDToURL(id entity.URLID) (entity.OriginalURL, bool) {
 	url, ok := uc.repo.GetURLByID(id)
+
 	return url, ok
 }
 
