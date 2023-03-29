@@ -17,7 +17,7 @@ const schema = `
  	CREATE TABLE IF NOT EXISTS urls (
  		id serial primary key,
  		user_id text,
- 		original_url text not null unique,
+ 		original_url text not null,
  		short_url text not null,
  		is_delete boolean DEFAULT FALSE
  	);
@@ -65,12 +65,12 @@ func (d *DB) GetURLByID(id entity.URLID) (entity.OriginalURL, bool) {
 func (d *DB) AddUserURL(userID string, shortURL string, originalURL string) {
 	insertUserURL, err := d.db.Prepare("INSERT INTO urls (user_id, original_url, short_url) VALUES ($1, $2, $3);")
 	if err != nil {
-		log.Println("ERROR :", err)
+		log.Println("ERROR 1:", err)
 	}
 	defer insertUserURL.Close()
 	_, err = insertUserURL.Exec(userID, originalURL, shortURL)
 	if err != nil {
-		log.Println("ERROR :", err)
+		log.Println("ERROR 2:", err)
 	}
 }
 
