@@ -67,6 +67,11 @@ func (r *memRepository) AddURL(id entity.URLID, url entity.OriginalURL) {
 	}
 }
 
+func (r *memRepository) BatchDeleteShortURLs(urls []entity.ModelURLForDelete) error {
+	log.Println(urls)
+	return nil
+}
+
 func (r *memRepository) GetURLByID(id entity.URLID) (entity.OriginalURL, error) {
 	r.RLock()
 	defer r.RUnlock()

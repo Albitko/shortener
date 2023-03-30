@@ -13,6 +13,11 @@ type Config struct {
 	DatabaseDSN          string `env:"DATABASE_DSN"`
 }
 
+type ModelURLForDelete struct {
+	UserID   string
+	ShortURL string
+}
+
 type UserURL struct {
 	ShortURL    string `json:"short_url"`
 	OriginalURL string `json:"original_url"`

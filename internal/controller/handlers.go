@@ -22,6 +22,7 @@ type urlConverter interface {
 	IDToURL(entity.URLID) (entity.OriginalURL, error)
 	UserIDToURLs(userID string) (map[string]string, bool)
 	AddUserURL(userID string, shortURL string, originalURL string)
+	BatchDeleteURL(userID string, shortURLs []string)
 	PingDB() error
 }
 
@@ -99,7 +100,6 @@ func (h *urlHandler) URLToID(c *gin.Context) {
 	}
 
 	shortURL, urlError := processURL(c, h, string(originalURL), userID)
-	//h.uc.AddUserURL(userID, h.baseURL+string(shortURL), string(originalURL))
 
 	log.Print("POST URL:", string(originalURL), " id: ", shortURL, "\n")
 
@@ -123,7 +123,8 @@ func (h *urlHandler) DeleteURL(c *gin.Context) {
 		return
 	}
 
-	log.Println(userID, IDsForDelete)
+	h.uc.BatchDeleteURL(userID, IDsForDelete)
+
 	c.String(http.StatusAccepted, "")
 }
 
@@ -149,7 +150,6 @@ func (h *urlHandler) BatchURLToIDInJSON(c *gin.Context) {
 		shortID, _ := processURL(c, h, val.OriginalURL, userID)
 		shortenURL.ShortURL = h.baseURL + string(shortID)
 		response = append(response, shortenURL)
-		//h.uc.AddUserURL(userID, h.baseURL+shortenURL.ShortURL, val.OriginalURL)
 		log.Print("POST URL:", val.OriginalURL, " id: ", shortenURL.ShortURL, "\n")
 	}
 
@@ -169,7 +169,6 @@ func (h *urlHandler) URLToIDInJSON(c *gin.Context) {
 	}
 	c.Header("Content-Type", "application/json")
 	shortURL, urlError := processURL(c, h, requestJSON["url"], userID)
-	//h.uc.AddUserURL(userID, h.baseURL+string(shortURL), requestJSON["url"])
 
 	log.Print("POST URL:", requestJSON["url"], " id: ", shortURL, "\n")
 

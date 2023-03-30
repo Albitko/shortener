@@ -95,6 +95,7 @@ func setupRouter() *gin.Engine {
 	router.GET("/:id", handler.GetID)
 	router.GET("/api/user/urls", handler.GetIDForUser)
 	router.GET("/ping", handler.CheckDBConnection)
+	router.DELETE("/api/user/urls", handler.DeleteURL)
 	return router
 }
 
