@@ -58,6 +58,7 @@ func (d *DB) BatchDeleteShortURLs(urls []entity.ModelURLForDelete) error {
 
 	for _, url := range urls {
 		_, err = updateDeletedURL.Exec(url.UserID, url.ShortURL)
+		log.Println(url.UserID, url.ShortURL)
 		if err != nil {
 			log.Println("ERROR :", err)
 			return err

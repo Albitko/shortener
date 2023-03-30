@@ -64,7 +64,7 @@ func checkUserSession(c *gin.Context) (string, error) {
 	if value := session.Get("user"); value == nil {
 		session.Set("user", userID)
 	} else {
-		return userID, nil
+		return value.(string), nil
 	}
 	err = session.Save()
 	if err != nil {
