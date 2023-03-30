@@ -80,6 +80,8 @@ func (h *urlHandler) GetID(c *gin.Context) {
 		c.Header("Location", string(originalURL))
 		log.Print("GET id:", id, " URL: ", originalURL, "\n")
 		c.Status(http.StatusTemporaryRedirect)
+	} else if errors.Is(err, repo.ErrURLDeleted) {
+		c.String(http.StatusGone, "")
 	} else {
 		c.Status(http.StatusBadRequest)
 	}

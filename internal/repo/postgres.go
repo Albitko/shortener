@@ -23,7 +23,10 @@ const schema = `
  	);
  	`
 
-var ErrURLAlreadyExists = errors.New("URL already exists")
+var (
+	ErrURLAlreadyExists = errors.New("URL already exists")
+	ErrURLDeleted       = errors.New("URL deleted")
+)
 
 type DB struct {
 	db  *sql.DB
@@ -49,13 +52,18 @@ func (d *DB) AddURL(id entity.URLID, url entity.OriginalURL) {
 
 func (d *DB) GetURLByID(id entity.URLID) (entity.OriginalURL, error) {
 	var originalURL string
-	selectOriginalURL, err := d.db.Prepare("SELECT original_url FROM urls WHERE short_url=$1;")
+	var isDeleted bool
+	selectOriginalURL, err := d.db.Prepare("SELECT original_url, is_delete  FROM urls WHERE short_url=$1;")
 	if err != nil {
 		return "", err
 	}
 	defer selectOriginalURL.Close()
 
-	if err = selectOriginalURL.QueryRow(string(id)).Scan(&originalURL); err != nil {
+	err = selectOriginalURL.QueryRow(string(id)).Scan(&originalURL, &isDeleted)
+	if isDeleted {
+		return "", ErrURLDeleted
+	}
+	if err != nil {
 		log.Println("ERR: ", err)
 		return "", err
 	}
