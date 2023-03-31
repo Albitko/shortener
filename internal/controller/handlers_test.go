@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"runtime"
 	"testing"
 
 	"github.com/gin-contrib/sessions"
@@ -14,6 +15,7 @@ import (
 
 	"github.com/Albitko/shortener/internal/config"
 	"github.com/Albitko/shortener/internal/repo"
+	"github.com/Albitko/shortener/internal/workers"
 
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
@@ -69,6 +71,8 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string, body []
 
 func setupRouter() *gin.Engine {
 	cfg := config.NewConfig()
+	queue := workers.NewQueue()
+	wrkrs := make([]*workers.Worker, 0, runtime.NumCPU())
 	var db *repo.DB
 	repository := repo.NewRepository(cfg.FileStoragePath)
 	defer repository.Close()
@@ -78,9 +82,16 @@ func setupRouter() *gin.Engine {
 		db = repo.NewPostgres(context.Background(), cfg.DatabaseDSN)
 		defer db.Close()
 		uc = usecase.NewURLConverter(db, db, db)
+		for i := 0; i < runtime.NumCPU(); i++ {
+			wrkrs = append(wrkrs, workers.NewWorker(i, queue, workers.NewResizer(db)))
+		}
+
+		for _, w := range wrkrs {
+			go w.Loop()
+		}
 	}
 
-	handler := NewURLHandler(uc, cfg.BaseURL)
+	handler := NewURLHandler(uc, cfg.BaseURL, queue)
 	store := cookie.NewStore([]byte(cfg.CookiesStorageSecret))
 
 	router := gin.New()
