@@ -18,7 +18,7 @@ type Queue struct {
 
 func NewQueue() *Queue {
 	return &Queue{
-		ch: make(chan *Task, 100),
+		ch: make(chan *Task, 1),
 	}
 }
 
