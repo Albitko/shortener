@@ -2,7 +2,6 @@ package workers
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/Albitko/shortener/internal/entity"
 	"github.com/Albitko/shortener/internal/repo"
@@ -19,7 +18,7 @@ type Queue struct {
 
 func NewQueue() *Queue {
 	return &Queue{
-		ch: make(chan *Task, 20),
+		ch: make(chan *Task, 100),
 	}
 }
 
@@ -40,7 +39,7 @@ func NewResizer(r *repo.DB) *Resizer {
 }
 
 func (r *Resizer) Resize(URLsForDelete []entity.ModelURLForDelete) error {
-	log.Println("DELETING ", URLsForDelete)
+	//log.Println("DELETING ", URLsForDelete)
 	return r.repository.BatchDeleteShortURLs(URLsForDelete)
 }
 

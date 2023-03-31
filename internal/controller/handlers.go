@@ -82,7 +82,7 @@ func (h *urlHandler) GetID(c *gin.Context) {
 	originalURL, err := h.uc.IDToURL(entity.URLID(id))
 	if err == nil {
 		c.Header("Location", string(originalURL))
-		log.Print("GET id:", id, " URL: ", originalURL, "\n")
+		//log.Print("GET id:", id, " URL: ", originalURL, "\n")
 		c.Status(http.StatusTemporaryRedirect)
 	} else if errors.Is(err, repo.ErrURLDeleted) {
 		c.String(http.StatusGone, "")
@@ -104,7 +104,7 @@ func (h *urlHandler) URLToID(c *gin.Context) {
 
 	shortURL, urlError := processURL(c, h, string(originalURL), userID)
 
-	log.Print("POST URL:", string(originalURL), " id: ", shortURL, "\n")
+	//log.Print("POST URL:", string(originalURL), " id: ", shortURL, "\n")
 
 	if errors.Is(urlError, repo.ErrURLAlreadyExists) {
 		c.String(http.StatusConflict, h.baseURL+string(shortURL))
