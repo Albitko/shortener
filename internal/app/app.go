@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"log"
+	"runtime"
 
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-contrib/sessions"
@@ -13,10 +14,15 @@ import (
 	"github.com/Albitko/shortener/internal/entity"
 	"github.com/Albitko/shortener/internal/repo"
 	"github.com/Albitko/shortener/internal/usecase"
+	"github.com/Albitko/shortener/internal/workers"
 )
 
 func Run(cfg entity.Config) {
 	var db *repo.DB
+
+	queue := workers.NewQueue()
+	wrkrs := make([]*workers.Worker, 0, runtime.NumCPU())
+
 	repository := repo.NewRepository(cfg.FileStoragePath)
 	defer repository.Close()
 	userRepository := repo.NewUserRepo()
@@ -25,9 +31,17 @@ func Run(cfg entity.Config) {
 		db = repo.NewPostgres(context.Background(), cfg.DatabaseDSN)
 		defer db.Close()
 		uc = usecase.NewURLConverter(db, db, db)
+
+		for i := 0; i < runtime.NumCPU(); i++ {
+			wrkrs = append(wrkrs, workers.NewWorker(i, queue, workers.NewResizer(db)))
+		}
+
+		for _, w := range wrkrs {
+			go w.Loop()
+		}
 	}
 
-	handler := controller.NewURLHandler(uc, cfg.BaseURL)
+	handler := controller.NewURLHandler(uc, cfg.BaseURL, queue)
 	store := cookie.NewStore([]byte(cfg.CookiesStorageSecret))
 
 	router := gin.New()

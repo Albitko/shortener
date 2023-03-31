@@ -15,6 +15,7 @@ import (
 
 	"github.com/Albitko/shortener/internal/entity"
 	"github.com/Albitko/shortener/internal/repo"
+	"github.com/Albitko/shortener/internal/workers"
 )
 
 type urlConverter interface {
@@ -29,9 +30,10 @@ type urlConverter interface {
 type urlHandler struct {
 	uc      urlConverter
 	baseURL string
+	q       workers.Queue
 }
 
-func NewURLHandler(u urlConverter, envBaseURL string) *urlHandler {
+func NewURLHandler(u urlConverter, envBaseURL string, queue *workers.Queue) *urlHandler {
 	baseURL := "http://localhost:8080/"
 	if envBaseURL != "" {
 		baseURL = envBaseURL + "/"
@@ -39,6 +41,7 @@ func NewURLHandler(u urlConverter, envBaseURL string) *urlHandler {
 	return &urlHandler{
 		uc:      u,
 		baseURL: baseURL,
+		q:       *queue,
 	}
 }
 
@@ -123,8 +126,8 @@ func (h *urlHandler) DeleteURL(c *gin.Context) {
 		return
 	}
 
-	h.uc.BatchDeleteURL(userID, IDsForDelete)
-
+	//h.uc.BatchDeleteURL(userID, IDsForDelete)
+	h.q.Push(&workers.Task{UserID: userID, IDsForDelete: IDsForDelete})
 	c.String(http.StatusAccepted, "")
 }
 
