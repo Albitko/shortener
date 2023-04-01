@@ -30,10 +30,10 @@ type urlConverter interface {
 type urlHandler struct {
 	uc      urlConverter
 	baseURL string
-	q       workers.Queue
+	q       *workers.InputWorker
 }
 
-func NewURLHandler(u urlConverter, envBaseURL string, queue *workers.Queue) *urlHandler {
+func NewURLHandler(u urlConverter, envBaseURL string, queue *workers.InputWorker) *urlHandler {
 	baseURL := "http://localhost:8080/"
 	if envBaseURL != "" {
 		baseURL = envBaseURL + "/"
@@ -41,7 +41,7 @@ func NewURLHandler(u urlConverter, envBaseURL string, queue *workers.Queue) *url
 	return &urlHandler{
 		uc:      u,
 		baseURL: baseURL,
-		q:       *queue,
+		q:       queue,
 	}
 }
 
@@ -127,7 +127,7 @@ func (h *urlHandler) DeleteURL(c *gin.Context) {
 	}
 
 	//h.uc.BatchDeleteURL(userID, IDsForDelete)
-	h.q.Push(&workers.Task{UserID: userID, IDsForDelete: IDsForDelete})
+	h.q.Do(workers.Task{UserID: userID, IDsForDelete: IDsForDelete})
 	c.String(http.StatusAccepted, "")
 }
 
