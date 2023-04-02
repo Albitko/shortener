@@ -41,8 +41,8 @@ func newDeleter(r repository) *Deleter {
 	return &Deleter{repo: r}
 }
 
-func (r *Deleter) Delete(URLsForDelete []entity.ModelURLForDelete) error {
-	return r.repo.BatchDeleteShortURLs(URLsForDelete)
+func (r *Deleter) Delete(urlsForDelete []entity.ModelURLForDelete) error {
+	return r.repo.BatchDeleteShortURLs(urlsForDelete)
 }
 
 type Worker struct {

@@ -22,7 +22,6 @@ type urlConverter interface {
 	URLToID(entity.OriginalURL, string) (entity.URLID, error)
 	IDToURL(entity.URLID) (entity.OriginalURL, error)
 	UserIDToURLs(userID string) (map[string]string, bool)
-	AddUserURL(userID string, shortURL string, originalURL string)
 	BatchDeleteURL(userID string, shortURLs []string)
 	PingDB() error
 }
@@ -80,13 +79,13 @@ func (h *urlHandler) GetID(c *gin.Context) {
 	id := c.Param("id")
 
 	originalURL, err := h.uc.IDToURL(entity.URLID(id))
-	if err == nil {
+	switch {
+	case err == nil:
 		c.Header("Location", string(originalURL))
-		//log.Print("GET id:", id, " URL: ", originalURL, "\n")
 		c.Status(http.StatusTemporaryRedirect)
-	} else if errors.Is(err, repo.ErrURLDeleted) {
+	case errors.Is(err, repo.ErrURLDeleted):
 		c.String(http.StatusGone, "")
-	} else {
+	default:
 		c.Status(http.StatusBadRequest)
 	}
 }
@@ -103,8 +102,6 @@ func (h *urlHandler) URLToID(c *gin.Context) {
 	}
 
 	shortURL, urlError := processURL(c, h, string(originalURL), userID)
-
-	//log.Print("POST URL:", string(originalURL), " id: ", shortURL, "\n")
 
 	if errors.Is(urlError, repo.ErrURLAlreadyExists) {
 		c.String(http.StatusConflict, h.baseURL+string(shortURL))
@@ -126,7 +123,6 @@ func (h *urlHandler) DeleteURL(c *gin.Context) {
 		return
 	}
 
-	//h.uc.BatchDeleteURL(userID, IDsForDelete)
 	h.q.Push(&workers.Task{UserID: userID, IDsForDelete: IDsForDelete})
 	c.String(http.StatusAccepted, "")
 }

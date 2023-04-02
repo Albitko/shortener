@@ -81,11 +81,12 @@ func (r *memRepository) GetURLByID(id entity.URLID) (entity.OriginalURL, error) 
 	defer r.RUnlock()
 	var err error
 	url, ok := r.storageCache[id]
-	if ok && string(url) == "" {
+	switch {
+	case ok && string(url) == "":
 		err = ErrURLDeleted
-	} else if ok {
+	case ok:
 		err = nil
-	} else {
+	default:
 		err = errors.New("no needed value in map")
 	}
 	return url, err

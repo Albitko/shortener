@@ -46,9 +46,9 @@ func (d *DB) AddURL(id entity.URLID, url entity.OriginalURL) {
 	_, err = insertURL.Exec(string(url), string(id))
 	if err != nil {
 		log.Println("ERROR :", err)
-		//return ErrURLAlreadyExists
 	}
 }
+
 func (d *DB) BatchDeleteShortURLs(urls []entity.ModelURLForDelete) error {
 	updateDeletedURL, err := d.db.Prepare("UPDATE urls SET is_delete = true WHERE user_id = $1 AND short_url = $2;")
 	if err != nil {

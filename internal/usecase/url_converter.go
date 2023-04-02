@@ -41,18 +41,18 @@ func (uc *urlConverter) IDToURL(id entity.URLID) (entity.OriginalURL, error) {
 }
 
 func (uc *urlConverter) BatchDeleteURL(userID string, shortURLs []string) {
-	var URLsForDelete []entity.ModelURLForDelete
+	URLsForDelete := make([]entity.ModelURLForDelete, len(shortURLs))
+
 	var URLForDelete entity.ModelURLForDelete
-	for _, url := range shortURLs {
+	for i, url := range shortURLs {
 		URLForDelete.UserID = userID
 		URLForDelete.ShortURL = url
-		URLsForDelete = append(URLsForDelete, URLForDelete)
+		URLsForDelete[i] = URLForDelete
 	}
 	err := uc.repo.BatchDeleteShortURLs(URLsForDelete)
 	if err != nil {
 		log.Println("ERROR update delete URLs ", err)
 	}
-
 }
 
 func (uc *urlConverter) UserIDToURLs(userID string) (map[string]string, bool) {
@@ -60,8 +60,9 @@ func (uc *urlConverter) UserIDToURLs(userID string) (map[string]string, bool) {
 	return urls, ok
 }
 
-func (uc *urlConverter) AddUserURL(userID string, shortURL string, originalURL string) {
-	uc.userRepo.AddUserURL(userID, shortURL, originalURL)
+func (uc *urlConverter) AddUserURL(userID string, shortURL string, originalURL string) error {
+	err := uc.userRepo.AddUserURL(userID, shortURL, originalURL)
+	return err
 }
 
 func (uc *urlConverter) PingDB() error {
