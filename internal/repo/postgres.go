@@ -88,13 +88,13 @@ func (d *DB) GetURLByID(id entity.URLID) (entity.OriginalURL, error) {
 func (d *DB) AddUserURL(userID string, shortURL string, originalURL string) error {
 	insertUserURL, err := d.db.Prepare("INSERT INTO urls (user_id, original_url, short_url) VALUES ($1, $2, $3);")
 	if err != nil {
-		log.Println("ERROR 1:", err)
+		log.Println("ERROR preparing query:", err)
 		return err
 	}
 	defer insertUserURL.Close()
 	_, err = insertUserURL.Exec(userID, originalURL, shortURL)
 	if err != nil {
-		log.Println("ERROR 2:", err)
+		log.Println("ERROR executing query:", err)
 		return ErrURLAlreadyExists
 	}
 	return nil
