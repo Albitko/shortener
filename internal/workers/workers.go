@@ -34,25 +34,25 @@ type Deleter struct {
 	repository *repo.DB
 }
 
-func NewResizer(r *repo.DB) *Deleter {
+func NewDeleter(r *repo.DB) *Deleter {
 	return &Deleter{repository: r}
 }
 
-func (r *Deleter) Resize(URLsForDelete []entity.ModelURLForDelete) error {
+func (r *Deleter) Delete(URLsForDelete []entity.ModelURLForDelete) error {
 	return r.repository.BatchDeleteShortURLs(URLsForDelete)
 }
 
 type Worker struct {
 	id      int
 	queue   *Queue
-	resizer *Deleter
+	deleter *Deleter
 }
 
-func NewWorker(id int, queue *Queue, resizer *Deleter) *Worker {
+func NewWorker(id int, queue *Queue, deleter *Deleter) *Worker {
 	w := Worker{
 		id:      id,
 		queue:   queue,
-		resizer: resizer,
+		deleter: deleter,
 	}
 	return &w
 }
@@ -67,7 +67,7 @@ func (w *Worker) Loop() {
 			URLForDelete.ShortURL = url
 			URLsForDelete = append(URLsForDelete, URLForDelete)
 		}
-		err := w.resizer.Resize(URLsForDelete)
+		err := w.deleter.Delete(URLsForDelete)
 		if err != nil {
 			fmt.Printf("error: %v\n", err)
 			continue
