@@ -140,4 +140,28 @@ func TestRouter(t *testing.T) {
 
 	pingStatus, _, _ := testRequest(t, ts, "GET", "/ping", nil, false)
 	assert.Equal(t, http.StatusInternalServerError, pingStatus)
+
+	// BatchDeleteShortURLs DELETE
+	originalURLs := []string{"https://1.com", "https://2.com", "https://3.com"}
+	shortenURLs := []string{"L4hn_ks5jl", "Ibh-weQcwK", "2J_SGlAgcs"}
+
+	for i, url := range originalURLs {
+		s, _, b := testRequest(t, ts, "POST", "/", []byte(url), false)
+		assert.Equal(t, http.StatusCreated, s)
+		assert.Equal(t, "http://localhost:8080/"+shortenURLs[i], b)
+	}
+
+	for i, url := range shortenURLs {
+		s, h, _ := testRequest(t, ts, "GET", "/"+url, nil, false)
+		assert.Equal(t, http.StatusTemporaryRedirect, s)
+		assert.Equal(t, originalURLs[i], h.Get("Location"))
+	}
+
+	s, _, _ := testRequest(t, ts, "DELETE", "/api/user/urls", []byte(`["L4hn_ks5jl", "Ibh-weQcwK", "2J_SGlAgcs"]`), false)
+	assert.Equal(t, http.StatusAccepted, s)
+
+	for _, url := range shortenURLs {
+		s, _, _ := testRequest(t, ts, "GET", "/"+url, nil, false)
+		assert.Equal(t, http.StatusGone, s)
+	}
 }
