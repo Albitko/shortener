@@ -8,12 +8,10 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"runtime"
-	"sync"
 	"testing"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
-	"golang.org/x/sync/errgroup"
 
 	"github.com/Albitko/shortener/internal/config"
 	"github.com/Albitko/shortener/internal/repo"
@@ -73,40 +71,27 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string, body []
 
 func setupRouter() *gin.Engine {
 	cfg := config.NewConfig()
-	//queue := workers.NewQueue()
-	//wrkrs := make([]*workers.Worker, 0, runtime.NumCPU())
+	queue := workers.NewQueue()
+	wrkrs := make([]*workers.Worker, 0, runtime.NumCPU())
 	var db *repo.DB
 	repository := repo.NewRepository(cfg.FileStoragePath)
 	defer repository.Close()
 	userRepository := repo.NewUserRepo()
 	uc := usecase.NewURLConverter(repository, userRepository, db)
-	// Init Workers
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	g, _ := errgroup.WithContext(ctx)
-	recordCh := make(chan workers.Task, 50)
-	doneCh := make(chan struct{})
-	mu := &sync.Mutex{}
-	inWorker := workers.NewInputWorker(recordCh, doneCh, ctx, mu)
-	for i := 1; i <= runtime.NumCPU(); i++ {
-		outWorker := workers.NewOutputWorker(i, recordCh, doneCh, ctx, db, mu)
-		g.Go(outWorker.Do)
-	}
-	g.Go(inWorker.Loop)
 	if cfg.DatabaseDSN != "" {
 		db = repo.NewPostgres(context.Background(), cfg.DatabaseDSN)
 		defer db.Close()
 		uc = usecase.NewURLConverter(db, db, db)
-		//for i := 0; i < runtime.NumCPU(); i++ {
-		//	wrkrs = append(wrkrs, workers.NewWorker(i, queue, workers.NewResizer(db)))
-		//}
-		//
-		//for _, w := range wrkrs {
-		//	go w.Loop()
-		//}
+		for i := 0; i < runtime.NumCPU(); i++ {
+			wrkrs = append(wrkrs, workers.NewWorker(i, queue, workers.NewResizer(db)))
+		}
+
+		for _, w := range wrkrs {
+			go w.Loop()
+		}
 	}
 
-	handler := NewURLHandler(uc, cfg.BaseURL, inWorker)
+	handler := NewURLHandler(uc, cfg.BaseURL, queue)
 	store := cookie.NewStore([]byte(cfg.CookiesStorageSecret))
 
 	router := gin.New()
