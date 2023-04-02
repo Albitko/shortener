@@ -9,4 +9,4 @@ coverage:
 # --------------
 # which folders/files to ignore
 ignore:
-  - "*_test.go"
+  - "**/*_test.go"
