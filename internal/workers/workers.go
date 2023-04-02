@@ -30,26 +30,25 @@ func (q *Queue) PopWait() *Task {
 	return <-q.ch
 }
 
-type Resizer struct {
+type Deleter struct {
 	repository *repo.DB
 }
 
-func NewResizer(r *repo.DB) *Resizer {
-	return &Resizer{repository: r}
+func NewResizer(r *repo.DB) *Deleter {
+	return &Deleter{repository: r}
 }
 
-func (r *Resizer) Resize(URLsForDelete []entity.ModelURLForDelete) error {
-	//log.Println("DELETING ", URLsForDelete)
+func (r *Deleter) Resize(URLsForDelete []entity.ModelURLForDelete) error {
 	return r.repository.BatchDeleteShortURLs(URLsForDelete)
 }
 
 type Worker struct {
 	id      int
 	queue   *Queue
-	resizer *Resizer
+	resizer *Deleter
 }
 
-func NewWorker(id int, queue *Queue, resizer *Resizer) *Worker {
+func NewWorker(id int, queue *Queue, resizer *Deleter) *Worker {
 	w := Worker{
 		id:      id,
 		queue:   queue,
