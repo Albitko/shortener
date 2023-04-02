@@ -83,7 +83,7 @@ func setupRouter() *gin.Engine {
 		defer db.Close()
 		uc = usecase.NewURLConverter(db, db, db)
 		for i := 0; i < runtime.NumCPU(); i++ {
-			wrkrs = append(wrkrs, workers.NewWorker(i, queue, workers.NewResizer(db)))
+			wrkrs = append(wrkrs, workers.NewWorker(i, queue, workers.NewDeleter(db)))
 		}
 
 		for _, w := range wrkrs {
