@@ -70,7 +70,6 @@ func (r *memRepository) AddURL(id entity.URLID, url entity.OriginalURL) {
 func (r *memRepository) BatchDeleteShortURLs(ids []entity.ModelURLForDelete) error {
 	r.Lock()
 	defer r.Unlock()
-
 	for _, id := range ids {
 		r.storageCache[entity.URLID(id.ShortURL)] = ""
 	}
@@ -82,10 +81,10 @@ func (r *memRepository) GetURLByID(id entity.URLID) (entity.OriginalURL, error) 
 	defer r.RUnlock()
 	var err error
 	url, ok := r.storageCache[id]
-	if ok {
-		err = nil
-	} else if ok && url == "" {
+	if ok && string(url) == "" {
 		err = ErrURLDeleted
+	} else if ok {
+		err = nil
 	} else {
 		err = errors.New("no needed value in map")
 	}

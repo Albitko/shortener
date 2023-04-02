@@ -7,13 +7,13 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"runtime"
 	"testing"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
 
 	"github.com/Albitko/shortener/internal/config"
+	"github.com/Albitko/shortener/internal/entity"
 	"github.com/Albitko/shortener/internal/repo"
 	"github.com/Albitko/shortener/internal/workers"
 
@@ -24,6 +24,10 @@ import (
 
 	"github.com/Albitko/shortener/internal/usecase"
 )
+
+type rep interface {
+	BatchDeleteShortURLs([]entity.ModelURLForDelete) error
+}
 
 func testRequest(t *testing.T, ts *httptest.Server, method, path string, body []byte, needCompress bool) (int, http.Header, string) {
 	var req *http.Request
@@ -71,26 +75,22 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string, body []
 
 func setupRouter() *gin.Engine {
 	cfg := config.NewConfig()
-	queue := workers.NewQueue()
-	wrkrs := make([]*workers.Worker, 0, runtime.NumCPU())
 	var db *repo.DB
+	var r rep
+
 	repository := repo.NewRepository(cfg.FileStoragePath)
 	defer repository.Close()
+	r = repository
 	userRepository := repo.NewUserRepo()
 	uc := usecase.NewURLConverter(repository, userRepository, db)
 	if cfg.DatabaseDSN != "" {
 		db = repo.NewPostgres(context.Background(), cfg.DatabaseDSN)
 		defer db.Close()
 		uc = usecase.NewURLConverter(db, db, db)
-		for i := 0; i < runtime.NumCPU(); i++ {
-			wrkrs = append(wrkrs, workers.NewWorker(i, queue, workers.NewDeleter(db)))
-		}
-
-		for _, w := range wrkrs {
-			go w.Loop()
-		}
+		r = db
 	}
 
+	queue := workers.InitWorkers(r)
 	handler := NewURLHandler(uc, cfg.BaseURL, queue)
 	store := cookie.NewStore([]byte(cfg.CookiesStorageSecret))
 

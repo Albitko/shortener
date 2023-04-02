@@ -2,11 +2,14 @@ package workers
 
 import (
 	"fmt"
+	"runtime"
 
 	"github.com/Albitko/shortener/internal/entity"
-	"github.com/Albitko/shortener/internal/repo"
 )
 
+type repository interface {
+	BatchDeleteShortURLs([]entity.ModelURLForDelete) error
+}
 type Task struct {
 	UserID       string
 	IDsForDelete []string
@@ -16,7 +19,7 @@ type Queue struct {
 	ch chan *Task
 }
 
-func NewQueue() *Queue {
+func newQueue() *Queue {
 	return &Queue{
 		ch: make(chan *Task, 1),
 	}
@@ -31,15 +34,15 @@ func (q *Queue) PopWait() *Task {
 }
 
 type Deleter struct {
-	repository *repo.DB
+	repo repository
 }
 
-func NewDeleter(r *repo.DB) *Deleter {
-	return &Deleter{repository: r}
+func newDeleter(r repository) *Deleter {
+	return &Deleter{repo: r}
 }
 
 func (r *Deleter) Delete(URLsForDelete []entity.ModelURLForDelete) error {
-	return r.repository.BatchDeleteShortURLs(URLsForDelete)
+	return r.repo.BatchDeleteShortURLs(URLsForDelete)
 }
 
 type Worker struct {
@@ -48,7 +51,7 @@ type Worker struct {
 	deleter *Deleter
 }
 
-func NewWorker(id int, queue *Queue, deleter *Deleter) *Worker {
+func newWorker(id int, queue *Queue, deleter *Deleter) *Worker {
 	w := Worker{
 		id:      id,
 		queue:   queue,
@@ -57,7 +60,7 @@ func NewWorker(id int, queue *Queue, deleter *Deleter) *Worker {
 	return &w
 }
 
-func (w *Worker) Loop() {
+func (w *Worker) loop() {
 	for {
 		t := w.queue.PopWait()
 		var URLsForDelete []entity.ModelURLForDelete
@@ -73,4 +76,18 @@ func (w *Worker) Loop() {
 			continue
 		}
 	}
+}
+
+func InitWorkers(r repository) *Queue {
+	queue := newQueue()
+	wrkrs := make([]*Worker, 0, runtime.NumCPU())
+
+	for i := 0; i < runtime.NumCPU(); i++ {
+		wrkrs = append(wrkrs, newWorker(i, queue, newDeleter(r)))
+	}
+
+	for _, w := range wrkrs {
+		go w.loop()
+	}
+	return queue
 }

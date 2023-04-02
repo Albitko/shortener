@@ -3,7 +3,6 @@ package app
 import (
 	"context"
 	"log"
-	"runtime"
 
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-contrib/sessions"
@@ -17,30 +16,27 @@ import (
 	"github.com/Albitko/shortener/internal/workers"
 )
 
+type rep interface {
+	BatchDeleteShortURLs([]entity.ModelURLForDelete) error
+}
+
 func Run(cfg entity.Config) {
 	var db *repo.DB
-
-	queue := workers.NewQueue()
-	wrkrs := make([]*workers.Worker, 0, runtime.NumCPU())
+	var r rep
 
 	repository := repo.NewRepository(cfg.FileStoragePath)
 	defer repository.Close()
 	userRepository := repo.NewUserRepo()
 	uc := usecase.NewURLConverter(repository, userRepository, db)
+	r = repository
 	if cfg.DatabaseDSN != "" {
 		db = repo.NewPostgres(context.Background(), cfg.DatabaseDSN)
 		defer db.Close()
 		uc = usecase.NewURLConverter(db, db, db)
-
-		for i := 0; i < runtime.NumCPU(); i++ {
-			wrkrs = append(wrkrs, workers.NewWorker(i, queue, workers.NewDeleter(db)))
-		}
-
-		for _, w := range wrkrs {
-			go w.Loop()
-		}
+		r = db
 	}
 
+	queue := workers.InitWorkers(r)
 	handler := controller.NewURLHandler(uc, cfg.BaseURL, queue)
 	store := cookie.NewStore([]byte(cfg.CookiesStorageSecret))
 
