@@ -17,26 +17,28 @@ import (
 )
 
 type rep interface {
-	BatchDeleteShortURLs([]entity.ModelURLForDelete) error
+	BatchDeleteShortURLs(context.Context, []entity.ModelURLForDelete) error
 }
 
 func Run(cfg entity.Config) {
 	var db *repo.DB
 	var r rep
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	repository := repo.NewRepository(cfg.FileStoragePath)
 	defer repository.Close()
 	userRepository := repo.NewUserRepo()
 	uc := usecase.NewURLConverter(repository, userRepository, db)
 	r = repository
 	if cfg.DatabaseDSN != "" {
-		db = repo.NewPostgres(context.Background(), cfg.DatabaseDSN)
+		db = repo.NewPostgres(ctx, cfg.DatabaseDSN)
 		defer db.Close()
 		uc = usecase.NewURLConverter(db, db, db)
 		r = db
 	}
 
-	queue := workers.InitWorkers(r)
+	queue := workers.InitWorkers(ctx, r)
 	handler := controller.NewURLHandler(uc, cfg.BaseURL, queue)
 	store := cookie.NewStore([]byte(cfg.CookiesStorageSecret))
 

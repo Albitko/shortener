@@ -37,26 +37,28 @@ func (d *DB) Close() {
 	d.db.Close()
 }
 
-func (d *DB) AddURL(id entity.URLID, url entity.OriginalURL) {
-	insertURL, err := d.db.Prepare("INSERT INTO urls (original_url, short_url) VALUES ($1, $2);")
+func (d *DB) AddURL(c context.Context, id entity.URLID, url entity.OriginalURL) {
+	insertURL, err := d.db.PrepareContext(c, "INSERT INTO urls (original_url, short_url) VALUES ($1, $2);")
 	if err != nil {
 		log.Println("ERROR :", err)
 	}
 	defer insertURL.Close()
-	_, err = insertURL.Exec(string(url), string(id))
+	_, err = insertURL.ExecContext(c, string(url), string(id))
 	if err != nil {
 		log.Println("ERROR :", err)
 	}
 }
 
-func (d *DB) BatchDeleteShortURLs(urls []entity.ModelURLForDelete) error {
-	updateDeletedURL, err := d.db.Prepare("UPDATE urls SET is_delete = true WHERE user_id = $1 AND short_url = $2;")
+func (d *DB) BatchDeleteShortURLs(c context.Context, urls []entity.ModelURLForDelete) error {
+	ctx, cancel := context.WithTimeout(c, 1*time.Second)
+	defer cancel()
+	updateDeletedURL, err := d.db.PrepareContext(ctx, "UPDATE urls SET is_delete = true WHERE user_id = $1 AND short_url = $2;")
 	if err != nil {
 		return err
 	}
 	defer updateDeletedURL.Close()
 	for _, url := range urls {
-		_, err = updateDeletedURL.Exec(url.UserID, url.ShortURL)
+		_, err = updateDeletedURL.ExecContext(ctx, url.UserID, url.ShortURL)
 		if err != nil {
 			log.Println("ERROR :", err)
 			return err
@@ -65,16 +67,16 @@ func (d *DB) BatchDeleteShortURLs(urls []entity.ModelURLForDelete) error {
 	return nil
 }
 
-func (d *DB) GetURLByID(id entity.URLID) (entity.OriginalURL, error) {
+func (d *DB) GetURLByID(c context.Context, id entity.URLID) (entity.OriginalURL, error) {
 	var originalURL string
 	var isDeleted bool
-	selectOriginalURL, err := d.db.Prepare("SELECT original_url, is_delete  FROM urls WHERE short_url=$1;")
+	selectOriginalURL, err := d.db.PrepareContext(c, "SELECT original_url, is_delete  FROM urls WHERE short_url=$1;")
 	if err != nil {
 		return "", err
 	}
 	defer selectOriginalURL.Close()
 
-	err = selectOriginalURL.QueryRow(string(id)).Scan(&originalURL, &isDeleted)
+	err = selectOriginalURL.QueryRowContext(c, string(id)).Scan(&originalURL, &isDeleted)
 	if isDeleted {
 		return "", ErrURLDeleted
 	}
@@ -85,14 +87,14 @@ func (d *DB) GetURLByID(id entity.URLID) (entity.OriginalURL, error) {
 	return entity.OriginalURL(originalURL), nil
 }
 
-func (d *DB) AddUserURL(userID string, shortURL string, originalURL string) error {
-	insertUserURL, err := d.db.Prepare("INSERT INTO urls (user_id, original_url, short_url) VALUES ($1, $2, $3);")
+func (d *DB) AddUserURL(c context.Context, userID string, shortURL string, originalURL string) error {
+	insertUserURL, err := d.db.PrepareContext(c, "INSERT INTO urls (user_id, original_url, short_url) VALUES ($1, $2, $3);")
 	if err != nil {
 		log.Println("ERROR preparing query:", err)
 		return err
 	}
 	defer insertUserURL.Close()
-	_, err = insertUserURL.Exec(userID, originalURL, shortURL)
+	_, err = insertUserURL.ExecContext(c, userID, originalURL, shortURL)
 	if err != nil {
 		log.Println("ERROR executing query:", err)
 		return ErrURLAlreadyExists
@@ -100,18 +102,18 @@ func (d *DB) AddUserURL(userID string, shortURL string, originalURL string) erro
 	return nil
 }
 
-func (d *DB) GetUserURLsByUserID(userID string) (map[string]string, bool) {
+func (d *DB) GetUserURLsByUserID(c context.Context, userID string) (map[string]string, bool) {
 	userURLs := make(map[string]string)
 	var modelURL entity.UserURL
 
-	selectUserURLs, err := d.db.Prepare("SELECT short_url, original_url FROM urls WHERE user_id=$1;")
+	selectUserURLs, err := d.db.PrepareContext(c, "SELECT short_url, original_url FROM urls WHERE user_id=$1;")
 	if err != nil {
 		log.Println("ERROR :", err)
 		return userURLs, false
 	}
 	defer selectUserURLs.Close()
 
-	row, err := selectUserURLs.Query(userID)
+	row, err := selectUserURLs.QueryContext(c, userID)
 	if err != nil {
 		log.Println("ERROR :", err)
 		return userURLs, false

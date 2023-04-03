@@ -24,7 +24,7 @@ import (
 )
 
 type rep interface {
-	BatchDeleteShortURLs([]entity.ModelURLForDelete) error
+	BatchDeleteShortURLs(context.Context, []entity.ModelURLForDelete) error
 }
 
 func testRequest(t *testing.T, ts *httptest.Server, method, path string, body []byte, needCompress bool) (int, http.Header, string) {
@@ -75,20 +75,21 @@ func setupRouter() *gin.Engine {
 	cfg := config.NewConfig()
 	var db *repo.DB
 	var r rep
-
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	repository := repo.NewRepository(cfg.FileStoragePath)
 	defer repository.Close()
 	r = repository
 	userRepository := repo.NewUserRepo()
 	uc := usecase.NewURLConverter(repository, userRepository, db)
 	if cfg.DatabaseDSN != "" {
-		db = repo.NewPostgres(context.Background(), cfg.DatabaseDSN)
+		db = repo.NewPostgres(ctx, cfg.DatabaseDSN)
 		defer db.Close()
 		uc = usecase.NewURLConverter(db, db, db)
 		r = db
 	}
 
-	queue := workers.InitWorkers(r)
+	queue := workers.InitWorkers(ctx, r)
 	handler := NewURLHandler(uc, cfg.BaseURL, queue)
 	store := cookie.NewStore([]byte(cfg.CookiesStorageSecret))
 

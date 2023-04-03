@@ -1,6 +1,7 @@
 package repo
 
 import (
+	"context"
 	"sync"
 )
 
@@ -9,7 +10,7 @@ type userMemRepository struct {
 	userStorageCache map[string]map[string]string
 }
 
-func (r *userMemRepository) AddUserURL(userID string, shortURL string, originalURL string) error {
+func (r *userMemRepository) AddUserURL(c context.Context, userID string, shortURL string, originalURL string) error {
 	r.Lock()
 	defer r.Unlock()
 	r.userStorageCache[userID] = make(map[string]string)
@@ -17,7 +18,7 @@ func (r *userMemRepository) AddUserURL(userID string, shortURL string, originalU
 	return nil
 }
 
-func (r *userMemRepository) GetUserURLsByUserID(userID string) (map[string]string, bool) {
+func (r *userMemRepository) GetUserURLsByUserID(c context.Context, userID string) (map[string]string, bool) {
 	r.RLock()
 	defer r.RUnlock()
 	urls, ok := r.userStorageCache[userID]

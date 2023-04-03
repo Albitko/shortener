@@ -1,6 +1,7 @@
 package workers
 
 import (
+	"context"
 	"fmt"
 	"runtime"
 
@@ -8,8 +9,9 @@ import (
 )
 
 type repository interface {
-	BatchDeleteShortURLs([]entity.ModelURLForDelete) error
+	BatchDeleteShortURLs(context.Context, []entity.ModelURLForDelete) error
 }
+
 type Task struct {
 	UserID       string
 	IDsForDelete []string
@@ -35,14 +37,15 @@ func (q *Queue) PopWait() *Task {
 
 type Deleter struct {
 	repo repository
+	ctx  context.Context
 }
 
-func newDeleter(r repository) *Deleter {
-	return &Deleter{repo: r}
+func newDeleter(ctx context.Context, r repository) *Deleter {
+	return &Deleter{repo: r, ctx: ctx}
 }
 
-func (r *Deleter) Delete(urlsForDelete []entity.ModelURLForDelete) error {
-	return r.repo.BatchDeleteShortURLs(urlsForDelete)
+func (d *Deleter) Delete(urlsForDelete []entity.ModelURLForDelete) error {
+	return d.repo.BatchDeleteShortURLs(d.ctx, urlsForDelete)
 }
 
 type Worker struct {
@@ -78,12 +81,12 @@ func (w *Worker) loop() {
 	}
 }
 
-func InitWorkers(r repository) *Queue {
+func InitWorkers(ctx context.Context, r repository) *Queue {
 	queue := newQueue()
 	wrkrs := make([]*Worker, 0, runtime.NumCPU())
 
 	for i := 0; i < runtime.NumCPU(); i++ {
-		wrkrs = append(wrkrs, newWorker(i, queue, newDeleter(r)))
+		wrkrs = append(wrkrs, newWorker(i, queue, newDeleter(ctx, r)))
 	}
 
 	for _, w := range wrkrs {

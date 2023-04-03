@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
@@ -10,6 +11,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
@@ -20,10 +22,9 @@ import (
 )
 
 type urlConverter interface {
-	URLToID(entity.OriginalURL, string) (entity.URLID, error)
-	IDToURL(entity.URLID) (entity.OriginalURL, error)
-	UserIDToURLs(userID string) (map[string]string, bool)
-	BatchDeleteURL(userID string, shortURLs []string)
+	URLToID(context.Context, entity.OriginalURL, string) (entity.URLID, error)
+	IDToURL(context.Context, entity.URLID) (entity.OriginalURL, error)
+	UserIDToURLs(c context.Context, userID string) (map[string]string, bool)
 	PingDB() error
 }
 
@@ -46,12 +47,14 @@ func NewURLHandler(u urlConverter, envBaseURL string, queue *workers.Queue) *url
 }
 
 func processURL(c *gin.Context, h *urlHandler, originalURL, userID string) (entity.URLID, error) {
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
+	defer cancel()
 	_, err := url.ParseRequestURI(originalURL)
 	if err != nil {
 		c.String(http.StatusBadRequest, "Should be URL in the body")
 		log.Print("ERROR:", err, "\n")
 	}
-	return h.uc.URLToID(entity.OriginalURL(originalURL), userID)
+	return h.uc.URLToID(ctx, entity.OriginalURL(originalURL), userID)
 }
 
 func checkUserSession(c *gin.Context) (string, error) {
@@ -77,9 +80,11 @@ func checkUserSession(c *gin.Context) (string, error) {
 }
 
 func (h *urlHandler) GetID(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
+	defer cancel()
 	id := c.Param("id")
 
-	originalURL, err := h.uc.IDToURL(entity.URLID(id))
+	originalURL, err := h.uc.IDToURL(ctx, entity.URLID(id))
 	switch {
 	case err == nil:
 		c.Header("Location", string(originalURL))
@@ -181,12 +186,14 @@ func (h *urlHandler) URLToIDInJSON(c *gin.Context) {
 }
 
 func (h *urlHandler) GetIDForUser(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
+	defer cancel()
 	var urls []entity.UserURL
 	session := sessions.Default(c)
 	if userID := session.Get("user"); userID == nil {
 		c.String(http.StatusNoContent, "There is no user in the session")
 	} else {
-		userURLs, ok := h.uc.UserIDToURLs(userID.(string))
+		userURLs, ok := h.uc.UserIDToURLs(ctx, userID.(string))
 		if ok {
 			for shortURL, originalURL := range userURLs {
 				var userURL entity.UserURL

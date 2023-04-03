@@ -2,6 +2,7 @@ package repo
 
 import (
 	"bufio"
+	"context"
 	"errors"
 	"log"
 	"os"
@@ -51,7 +52,7 @@ func NewRepository(path string) *memRepository {
 	}
 }
 
-func (r *memRepository) AddURL(id entity.URLID, url entity.OriginalURL) {
+func (r *memRepository) AddURL(c context.Context, id entity.URLID, url entity.OriginalURL) {
 	r.Lock()
 	defer r.Unlock()
 	r.storageCache[id] = url
@@ -67,7 +68,7 @@ func (r *memRepository) AddURL(id entity.URLID, url entity.OriginalURL) {
 	}
 }
 
-func (r *memRepository) BatchDeleteShortURLs(ids []entity.ModelURLForDelete) error {
+func (r *memRepository) BatchDeleteShortURLs(c context.Context, ids []entity.ModelURLForDelete) error {
 	r.Lock()
 	defer r.Unlock()
 	for _, id := range ids {
@@ -76,7 +77,7 @@ func (r *memRepository) BatchDeleteShortURLs(ids []entity.ModelURLForDelete) err
 	return nil
 }
 
-func (r *memRepository) GetURLByID(id entity.URLID) (entity.OriginalURL, error) {
+func (r *memRepository) GetURLByID(c context.Context, id entity.URLID) (entity.OriginalURL, error) {
 	r.RLock()
 	defer r.RUnlock()
 	var err error

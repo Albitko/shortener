@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/base64"
 	"log"
@@ -10,14 +11,14 @@ import (
 )
 
 type repository interface {
-	AddURL(entity.URLID, entity.OriginalURL)
-	GetURLByID(entity.URLID) (entity.OriginalURL, error)
-	BatchDeleteShortURLs([]entity.ModelURLForDelete) error
+	AddURL(context.Context, entity.URLID, entity.OriginalURL)
+	GetURLByID(context.Context, entity.URLID) (entity.OriginalURL, error)
+	BatchDeleteShortURLs(context.Context, []entity.ModelURLForDelete) error
 }
 
 type userRepository interface {
-	AddUserURL(userID string, shortURL string, originalURL string) error
-	GetUserURLsByUserID(userID string) (map[string]string, bool)
+	AddUserURL(c context.Context, userID string, shortURL string, originalURL string) error
+	GetUserURLsByUserID(c context.Context, userID string) (map[string]string, bool)
 }
 
 type urlConverter struct {
@@ -26,21 +27,21 @@ type urlConverter struct {
 	pg       *repo.DB
 }
 
-func (uc *urlConverter) URLToID(url entity.OriginalURL, userID string) (entity.URLID, error) {
+func (uc *urlConverter) URLToID(ctx context.Context, url entity.OriginalURL, userID string) (entity.URLID, error) {
 	hasher := sha256.New()
 	hasher.Write([]byte(url))
 	id := entity.URLID(base64.URLEncoding.EncodeToString(hasher.Sum(nil))[:10])
-	err := uc.userRepo.AddUserURL(userID, string(id), string(url))
-	uc.repo.AddURL(id, url)
+	err := uc.userRepo.AddUserURL(ctx, userID, string(id), string(url))
+	uc.repo.AddURL(ctx, id, url)
 	return id, err
 }
 
-func (uc *urlConverter) IDToURL(id entity.URLID) (entity.OriginalURL, error) {
-	url, err := uc.repo.GetURLByID(id)
+func (uc *urlConverter) IDToURL(ctx context.Context, id entity.URLID) (entity.OriginalURL, error) {
+	url, err := uc.repo.GetURLByID(ctx, id)
 	return url, err
 }
 
-func (uc *urlConverter) BatchDeleteURL(userID string, shortURLs []string) {
+func (uc *urlConverter) BatchDeleteURL(c context.Context, userID string, shortURLs []string) {
 	URLsForDelete := make([]entity.ModelURLForDelete, len(shortURLs))
 
 	var URLForDelete entity.ModelURLForDelete
@@ -49,19 +50,19 @@ func (uc *urlConverter) BatchDeleteURL(userID string, shortURLs []string) {
 		URLForDelete.ShortURL = url
 		URLsForDelete[i] = URLForDelete
 	}
-	err := uc.repo.BatchDeleteShortURLs(URLsForDelete)
+	err := uc.repo.BatchDeleteShortURLs(c, URLsForDelete)
 	if err != nil {
 		log.Println("ERROR update delete URLs ", err)
 	}
 }
 
-func (uc *urlConverter) UserIDToURLs(userID string) (map[string]string, bool) {
-	urls, ok := uc.userRepo.GetUserURLsByUserID(userID)
+func (uc *urlConverter) UserIDToURLs(ctx context.Context, userID string) (map[string]string, bool) {
+	urls, ok := uc.userRepo.GetUserURLsByUserID(ctx, userID)
 	return urls, ok
 }
 
-func (uc *urlConverter) AddUserURL(userID string, shortURL string, originalURL string) error {
-	err := uc.userRepo.AddUserURL(userID, shortURL, originalURL)
+func (uc *urlConverter) AddUserURL(c context.Context, userID string, shortURL string, originalURL string) error {
+	err := uc.userRepo.AddUserURL(c, userID, shortURL, originalURL)
 	return err
 }
 
