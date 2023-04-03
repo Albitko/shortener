@@ -52,7 +52,9 @@ func (d *DB) AddURL(c context.Context, id entity.URLID, url entity.OriginalURL) 
 func (d *DB) BatchDeleteShortURLs(c context.Context, urls []entity.ModelURLForDelete) error {
 	ctx, cancel := context.WithTimeout(c, 1*time.Second)
 	defer cancel()
-	updateDeletedURL, err := d.db.PrepareContext(ctx, "UPDATE urls SET is_delete = true WHERE user_id = $1 AND short_url = $2;")
+	updateDeletedURL, err := d.db.PrepareContext(
+		ctx, "UPDATE urls SET is_delete = true WHERE user_id = $1 AND short_url = $2;",
+	)
 	if err != nil {
 		return err
 	}
@@ -70,7 +72,9 @@ func (d *DB) BatchDeleteShortURLs(c context.Context, urls []entity.ModelURLForDe
 func (d *DB) GetURLByID(c context.Context, id entity.URLID) (entity.OriginalURL, error) {
 	var originalURL string
 	var isDeleted bool
-	selectOriginalURL, err := d.db.PrepareContext(c, "SELECT original_url, is_delete  FROM urls WHERE short_url=$1;")
+	selectOriginalURL, err := d.db.PrepareContext(
+		c, "SELECT original_url, is_delete  FROM urls WHERE short_url=$1;",
+	)
 	if err != nil {
 		return "", err
 	}
@@ -88,7 +92,9 @@ func (d *DB) GetURLByID(c context.Context, id entity.URLID) (entity.OriginalURL,
 }
 
 func (d *DB) AddUserURL(c context.Context, userID string, shortURL string, originalURL string) error {
-	insertUserURL, err := d.db.PrepareContext(c, "INSERT INTO urls (user_id, original_url, short_url) VALUES ($1, $2, $3);")
+	insertUserURL, err := d.db.PrepareContext(
+		c, "INSERT INTO urls (user_id, original_url, short_url) VALUES ($1, $2, $3);",
+	)
 	if err != nil {
 		log.Println("ERROR preparing query:", err)
 		return err
