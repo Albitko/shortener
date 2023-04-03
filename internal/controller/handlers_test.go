@@ -9,20 +9,18 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/gin-contrib/gzip"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
-
-	"github.com/Albitko/shortener/internal/config"
-	"github.com/Albitko/shortener/internal/entity"
-	"github.com/Albitko/shortener/internal/repo"
-	"github.com/Albitko/shortener/internal/workers"
-
-	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/Albitko/shortener/internal/config"
+	"github.com/Albitko/shortener/internal/entity"
+	"github.com/Albitko/shortener/internal/repo"
 	"github.com/Albitko/shortener/internal/usecase"
+	"github.com/Albitko/shortener/internal/workers"
 )
 
 type rep interface {
