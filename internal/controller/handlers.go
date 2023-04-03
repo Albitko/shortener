@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -66,7 +67,7 @@ func checkUserSession(c *gin.Context) (string, error) {
 	if value := session.Get("user"); value == nil {
 		session.Set("user", userID)
 	} else {
-		return value.(string), nil
+		return fmt.Sprintf("%v", value), nil
 	}
 	err = session.Save()
 	if err != nil {
