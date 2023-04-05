@@ -1,36 +1,40 @@
 package controller
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 
 	"github.com/Albitko/shortener/internal/entity"
 	"github.com/Albitko/shortener/internal/repo"
+	"github.com/Albitko/shortener/internal/workers"
 )
 
 type urlConverter interface {
-	URLToID(url entity.OriginalURL) (entity.URLID, error)
-	IDToURL(entity.URLID) (entity.OriginalURL, bool)
-	UserIDToURLs(userID string) (map[string]string, bool)
-	AddUserURL(userID string, shortURL string, originalURL string)
+	URLToID(context.Context, entity.OriginalURL, string) (entity.URLID, error)
+	IDToURL(context.Context, entity.URLID) (entity.OriginalURL, error)
+	UserIDToURLs(c context.Context, userID string) (map[string]string, bool)
 	PingDB() error
 }
 
 type urlHandler struct {
 	uc      urlConverter
 	baseURL string
+	q       workers.Queue
 }
 
-func NewURLHandler(u urlConverter, envBaseURL string) *urlHandler {
+func NewURLHandler(u urlConverter, envBaseURL string, queue *workers.Queue) *urlHandler {
 	baseURL := "http://localhost:8080/"
 	if envBaseURL != "" {
 		baseURL = envBaseURL + "/"
@@ -38,16 +42,19 @@ func NewURLHandler(u urlConverter, envBaseURL string) *urlHandler {
 	return &urlHandler{
 		uc:      u,
 		baseURL: baseURL,
+		q:       *queue,
 	}
 }
 
-func processURL(c *gin.Context, h *urlHandler, originalURL string) (entity.URLID, error) {
+func processURL(c *gin.Context, h *urlHandler, originalURL, userID string) (entity.URLID, error) {
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
+	defer cancel()
 	_, err := url.ParseRequestURI(originalURL)
 	if err != nil {
 		c.String(http.StatusBadRequest, "Should be URL in the body")
 		log.Print("ERROR:", err, "\n")
 	}
-	return h.uc.URLToID(entity.OriginalURL(originalURL))
+	return h.uc.URLToID(ctx, entity.OriginalURL(originalURL), userID)
 }
 
 func checkUserSession(c *gin.Context) (string, error) {
@@ -56,13 +63,14 @@ func checkUserSession(c *gin.Context) (string, error) {
 	_, err := rand.Read(randID)
 	if err != nil {
 		log.Print("ERROR:", err, "\n")
+		return "", err
 	}
 	userID := hex.EncodeToString(randID)
 
 	if value := session.Get("user"); value == nil {
 		session.Set("user", userID)
 	} else {
-		return userID, nil
+		return fmt.Sprintf("%v", value), nil
 	}
 	err = session.Save()
 	if err != nil {
@@ -72,13 +80,18 @@ func checkUserSession(c *gin.Context) (string, error) {
 }
 
 func (h *urlHandler) GetID(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
+	defer cancel()
 	id := c.Param("id")
 
-	if originalURL, ok := h.uc.IDToURL(entity.URLID(id)); ok {
+	originalURL, err := h.uc.IDToURL(ctx, entity.URLID(id))
+	switch {
+	case err == nil:
 		c.Header("Location", string(originalURL))
-		log.Print("GET id:", id, " URL: ", originalURL, "\n")
 		c.Status(http.StatusTemporaryRedirect)
-	} else {
+	case errors.Is(err, repo.ErrURLDeleted):
+		c.String(http.StatusGone, "")
+	default:
 		c.Status(http.StatusBadRequest)
 	}
 }
@@ -94,10 +107,7 @@ func (h *urlHandler) URLToID(c *gin.Context) {
 		c.AbortWithStatus(http.StatusInternalServerError)
 	}
 
-	shortURL, urlError := processURL(c, h, string(originalURL))
-	h.uc.AddUserURL(userID, h.baseURL+string(shortURL), string(originalURL[:]))
-
-	log.Print("POST URL:", string(originalURL[:]), " id: ", shortURL, "\n")
+	shortURL, urlError := processURL(c, h, string(originalURL), userID)
 
 	if errors.Is(urlError, repo.ErrURLAlreadyExists) {
 		c.String(http.StatusConflict, h.baseURL+string(shortURL))
@@ -106,8 +116,24 @@ func (h *urlHandler) URLToID(c *gin.Context) {
 	c.String(http.StatusCreated, h.baseURL+string(shortURL))
 }
 
+func (h *urlHandler) DeleteURL(c *gin.Context) {
+	userID, err := checkUserSession(c)
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+	}
+
+	var IDsForDelete []string
+	if err := json.NewDecoder(c.Request.Body).Decode(&IDsForDelete); err != nil {
+		log.Print("ERROR decoding IDs for deletion:", err, "\n")
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	h.q.Push(&workers.Task{UserID: userID, IDsForDelete: IDsForDelete})
+	c.String(http.StatusAccepted, "")
+}
+
 func (h *urlHandler) BatchURLToIDInJSON(c *gin.Context) {
-	var response []entity.ModelURLBatchResponse
 	var requestJSON []entity.ModelURLBatchRequest
 	var shortenURL entity.ModelURLBatchResponse
 
@@ -121,12 +147,14 @@ func (h *urlHandler) BatchURLToIDInJSON(c *gin.Context) {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
+
+	response := make([]entity.ModelURLBatchResponse, 0, len(requestJSON))
+
 	for _, val := range requestJSON {
 		shortenURL.CorrelationID = val.CorrelationID
-		shortID, _ := processURL(c, h, val.OriginalURL)
+		shortID, _ := processURL(c, h, val.OriginalURL, userID)
 		shortenURL.ShortURL = h.baseURL + string(shortID)
 		response = append(response, shortenURL)
-		h.uc.AddUserURL(userID, h.baseURL+shortenURL.ShortURL, val.OriginalURL)
 		log.Print("POST URL:", val.OriginalURL, " id: ", shortenURL.ShortURL, "\n")
 	}
 
@@ -145,8 +173,7 @@ func (h *urlHandler) URLToIDInJSON(c *gin.Context) {
 		return
 	}
 	c.Header("Content-Type", "application/json")
-	shortURL, urlError := processURL(c, h, requestJSON["url"])
-	h.uc.AddUserURL(userID, h.baseURL+string(shortURL), requestJSON["url"])
+	shortURL, urlError := processURL(c, h, requestJSON["url"], userID)
 
 	log.Print("POST URL:", requestJSON["url"], " id: ", shortURL, "\n")
 
@@ -159,17 +186,19 @@ func (h *urlHandler) URLToIDInJSON(c *gin.Context) {
 }
 
 func (h *urlHandler) GetIDForUser(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
+	defer cancel()
 	var urls []entity.UserURL
 	session := sessions.Default(c)
 	if userID := session.Get("user"); userID == nil {
 		c.String(http.StatusNoContent, "There is no user in the session")
 	} else {
-		userURLs, ok := h.uc.UserIDToURLs(userID.(string))
+		userURLs, ok := h.uc.UserIDToURLs(ctx, userID.(string))
 		if ok {
 			for shortURL, originalURL := range userURLs {
 				var userURL entity.UserURL
 				userURL.OriginalURL = originalURL
-				userURL.ShortURL = shortURL
+				userURL.ShortURL = h.baseURL + shortURL
 				urls = append(urls, userURL)
 			}
 			c.JSON(http.StatusOK, urls)

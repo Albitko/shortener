@@ -13,22 +13,33 @@ import (
 	"github.com/Albitko/shortener/internal/entity"
 	"github.com/Albitko/shortener/internal/repo"
 	"github.com/Albitko/shortener/internal/usecase"
+	"github.com/Albitko/shortener/internal/workers"
 )
+
+type rep interface {
+	BatchDeleteShortURLs(context.Context, []entity.ModelURLForDelete) error
+}
 
 func Run(cfg entity.Config) {
 	var db *repo.DB
+	var r rep
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	repository := repo.NewRepository(cfg.FileStoragePath)
 	defer repository.Close()
 	userRepository := repo.NewUserRepo()
 	uc := usecase.NewURLConverter(repository, userRepository, db)
+	r = repository
 	if cfg.DatabaseDSN != "" {
-		db = repo.NewPostgres(context.Background(), cfg.DatabaseDSN)
+		db = repo.NewPostgres(ctx, cfg.DatabaseDSN)
 		defer db.Close()
 		uc = usecase.NewURLConverter(db, db, db)
-
+		r = db
 	}
 
-	handler := controller.NewURLHandler(uc, cfg.BaseURL)
+	queue := workers.InitWorkers(ctx, r)
+	handler := controller.NewURLHandler(uc, cfg.BaseURL, queue)
 	store := cookie.NewStore([]byte(cfg.CookiesStorageSecret))
 
 	router := gin.New()
@@ -43,10 +54,11 @@ func Run(cfg entity.Config) {
 	router.GET("/:id", handler.GetID)
 	router.GET("/api/user/urls", handler.GetIDForUser)
 	router.GET("/ping", handler.CheckDBConnection)
+	router.DELETE("/api/user/urls", handler.DeleteURL)
 
 	err := router.Run(cfg.ServerAddress)
 	if err != nil {
-		log.Fatal("Couldn't  start server ", err)
+		log.Print("Couldn't  start server ", err)
 		return
 	}
 }

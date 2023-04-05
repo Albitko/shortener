@@ -1,7 +1,9 @@
 package entity
 
-type URLID string
-type OriginalURL string
+type (
+	URLID       string
+	OriginalURL string
+)
 
 type Config struct {
 	ServerAddress        string `env:"SERVER_ADDRESS"`
@@ -9,6 +11,11 @@ type Config struct {
 	FileStoragePath      string `env:"FILE_STORAGE_PATH"`
 	CookiesStorageSecret string `env:"COOKIES_STORAGE_SECRET"`
 	DatabaseDSN          string `env:"DATABASE_DSN"`
+}
+
+type ModelURLForDelete struct {
+	UserID   string
+	ShortURL string
 }
 
 type UserURL struct {

@@ -2,6 +2,8 @@ package repo
 
 import (
 	"bufio"
+	"context"
+	"errors"
 	"log"
 	"os"
 	"strings"
@@ -20,7 +22,7 @@ type memRepository struct {
 
 func NewRepository(path string) *memRepository {
 	dataFromFile := make(map[entity.URLID]entity.OriginalURL)
-	file, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_APPEND|os.O_SYNC, 0777)
+	file, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_APPEND|os.O_SYNC, 0o777)
 	isFileSet := false
 
 	if path != "" {
@@ -50,29 +52,47 @@ func NewRepository(path string) *memRepository {
 	}
 }
 
-func (r *memRepository) AddURL(id entity.URLID, url entity.OriginalURL) error {
+func (r *memRepository) AddURL(c context.Context, id entity.URLID, url entity.OriginalURL) {
 	r.Lock()
 	defer r.Unlock()
 	r.storageCache[id] = url
 
 	if r.isFileStorageSet {
 		if _, err := r.writer.WriteString(string(id) + "|" + string(url) + "\n"); err != nil {
-			return err
+			log.Print("AddURL failed write string: %w", err)
 		}
 		err := r.writer.Flush()
 		if err != nil {
-			return err
+			log.Print("AddURL failed flush: %w", err)
 		}
+	}
+}
+
+func (r *memRepository) BatchDeleteShortURLs(c context.Context, ids []entity.ModelURLForDelete) error {
+	r.Lock()
+	defer r.Unlock()
+	for _, id := range ids {
+		r.storageCache[entity.URLID(id.ShortURL)] = ""
 	}
 	return nil
 }
 
-func (r *memRepository) GetURLByID(id entity.URLID) (entity.OriginalURL, bool) {
+func (r *memRepository) GetURLByID(c context.Context, id entity.URLID) (entity.OriginalURL, error) {
 	r.RLock()
 	defer r.RUnlock()
+	var err error
 	url, ok := r.storageCache[id]
-	return url, ok
+	switch {
+	case ok && string(url) == "":
+		err = ErrURLDeleted
+	case ok:
+		err = nil
+	default:
+		err = errors.New("no needed value in map")
+	}
+	return url, err
 }
+
 func (r *memRepository) Close() error {
 	return r.fileStorage.Close()
 }
