@@ -7,10 +7,12 @@ import (
 	"github.com/google/uuid"
 )
 
-const mainURL = "http://localhost:8080/"
-const shortenURL = "http://localhost:8080/api/shorten"
-const shortenBatchURL = "http://localhost:8080/api/shorten/batch"
-const userURL = "http://localhost:8080/api/user/urls"
+const (
+	mainURL         = "http://localhost:8080/"
+	shortenURL      = "http://localhost:8080/api/shorten"
+	shortenBatchURL = "http://localhost:8080/api/shorten/batch"
+	userURL         = "http://localhost:8080/api/user/urls"
+)
 
 func BenchmarkHandlers(b *testing.B) {
 	client := resty.New()
@@ -61,5 +63,4 @@ func BenchmarkHandlers(b *testing.B) {
 			client.R().Get(userURL)
 		}
 	})
-
 }
