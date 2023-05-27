@@ -159,8 +159,8 @@ func TestRouter(t *testing.T) {
 	s, _, _ := testRequest(t, ts, "DELETE", "/api/user/urls", []byte(`["L4hn_ks5jl", "Ibh-weQcwK", "2J_SGlAgcs"]`), false)
 	assert.Equal(t, http.StatusAccepted, s)
 
-	for _, url := range shortenURLs {
-		s, _, _ := testRequest(t, ts, "GET", "/"+url, nil, false)
+	for i := range shortenURLs {
+		s, _, _ := testRequest(t, ts, "GET", "/"+shortenURLs[i], nil, false)
 		assert.Equal(t, http.StatusGone, s)
 	}
 }

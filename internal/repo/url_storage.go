@@ -71,8 +71,8 @@ func (r *memRepository) AddURL(c context.Context, id entity.URLID, url entity.Or
 func (r *memRepository) BatchDeleteShortURLs(c context.Context, ids []entity.ModelURLForDelete) error {
 	r.Lock()
 	defer r.Unlock()
-	for _, id := range ids {
-		r.storageCache[entity.URLID(id.ShortURL)] = ""
+	for i := range ids {
+		r.storageCache[entity.URLID(ids[i].ShortURL)] = ""
 	}
 	return nil
 }

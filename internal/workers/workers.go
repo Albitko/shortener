@@ -68,9 +68,9 @@ func (w *Worker) loop() {
 		t := w.queue.PopWait()
 		var URLsForDelete []entity.ModelURLForDelete
 		var URLForDelete entity.ModelURLForDelete
-		for _, url := range t.IDsForDelete {
+		for i := range t.IDsForDelete {
 			URLForDelete.UserID = t.UserID
-			URLForDelete.ShortURL = url
+			URLForDelete.ShortURL = t.IDsForDelete[i]
 			URLsForDelete = append(URLsForDelete, URLForDelete)
 		}
 		err := w.deleter.Delete(URLsForDelete)
@@ -89,8 +89,8 @@ func InitWorkers(ctx context.Context, r repository) *Queue {
 		wrkrs = append(wrkrs, newWorker(i, queue, newDeleter(ctx, r)))
 	}
 
-	for _, w := range wrkrs {
-		go w.loop()
+	for i := range wrkrs {
+		go wrkrs[i].loop()
 	}
 	return queue
 }

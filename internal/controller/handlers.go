@@ -150,12 +150,12 @@ func (h *urlHandler) BatchURLToIDInJSON(c *gin.Context) {
 
 	response := make([]entity.ModelURLBatchResponse, 0, len(requestJSON))
 
-	for _, val := range requestJSON {
-		shortenURL.CorrelationID = val.CorrelationID
-		shortID, _ := processURL(c, h, val.OriginalURL, userID)
+	for i := range requestJSON {
+		shortenURL.CorrelationID = requestJSON[i].CorrelationID
+		shortID, _ := processURL(c, h, requestJSON[i].OriginalURL, userID)
 		shortenURL.ShortURL = h.baseURL + string(shortID)
 		response = append(response, shortenURL)
-		log.Print("POST URL:", val.OriginalURL, " id: ", shortenURL.ShortURL, "\n")
+		log.Print("POST URL:", requestJSON[i].OriginalURL, " id: ", shortenURL.ShortURL, "\n")
 	}
 
 	c.JSON(http.StatusCreated, response)
