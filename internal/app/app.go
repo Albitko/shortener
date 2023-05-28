@@ -20,6 +20,7 @@ type rep interface {
 	BatchDeleteShortURLs(context.Context, []entity.ModelURLForDelete) error
 }
 
+// Run main application func that runs App
 func Run(cfg entity.Config) {
 	var db *repo.DB
 	var r rep
