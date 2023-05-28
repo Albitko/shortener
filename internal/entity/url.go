@@ -1,5 +1,6 @@
 package entity
 
+// type for short and original url.
 type (
 	// URLID type for shorten URL.
 	URLID string

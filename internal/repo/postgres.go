@@ -23,6 +23,7 @@ const schema = `
  	);
  	`
 
+// errors for DB.
 var (
 	// ErrURLAlreadyExists error if user try to add URL that already in DB.
 	ErrURLAlreadyExists = errors.New("URL already exists")
