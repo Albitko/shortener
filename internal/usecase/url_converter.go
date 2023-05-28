@@ -27,6 +27,7 @@ type urlConverter struct {
 	pg       *repo.DB
 }
 
+// URLToID generate short URL and add it to DB.
 func (uc *urlConverter) URLToID(ctx context.Context, url entity.OriginalURL, userID string) (entity.URLID, error) {
 	hasher := sha256.New()
 	hasher.Write([]byte(url))
@@ -36,11 +37,13 @@ func (uc *urlConverter) URLToID(ctx context.Context, url entity.OriginalURL, use
 	return id, err
 }
 
+// IDToURL get original URL for shorten. Pass task to the next layer.
 func (uc *urlConverter) IDToURL(ctx context.Context, id entity.URLID) (entity.OriginalURL, error) {
 	url, err := uc.repo.GetURLByID(ctx, id)
 	return url, err
 }
 
+// BatchDeleteURL prepare data for batch delete in DB and pass data to it.
 func (uc *urlConverter) BatchDeleteURL(c context.Context, userID string, shortURLs []string) {
 	URLsForDelete := make([]entity.ModelURLForDelete, len(shortURLs))
 
@@ -56,21 +59,25 @@ func (uc *urlConverter) BatchDeleteURL(c context.Context, userID string, shortUR
 	}
 }
 
+// UserIDToURLs return all user urls.
 func (uc *urlConverter) UserIDToURLs(ctx context.Context, userID string) (map[string]string, bool) {
 	urls, ok := uc.userRepo.GetUserURLsByUserID(ctx, userID)
 	return urls, ok
 }
 
+// AddUserURL add shorten url for user.
 func (uc *urlConverter) AddUserURL(c context.Context, userID string, shortURL string, originalURL string) error {
 	err := uc.userRepo.AddUserURL(c, userID, shortURL, originalURL)
 	return err
 }
 
+// PingDB check DB connection.
 func (uc *urlConverter) PingDB() error {
 	err := uc.pg.Ping()
 	return err
 }
 
+// NewURLConverter create urlConverter instance.
 func NewURLConverter(r repository, u userRepository, d *repo.DB) *urlConverter {
 	return &urlConverter{
 		repo:     r,
