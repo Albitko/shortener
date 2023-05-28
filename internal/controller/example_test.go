@@ -15,11 +15,11 @@ func Example() {
 
 	client := resty.New()
 
-	// send the url that needs to be shortened and recieve shorten
+	// send the url that needs to be shortened and receive shorten
 	client.R().SetContext(ctx).SetBody("https://google.com").Post(serverAddr + "/")
-	// send the url that needs to be shortened and recieve shorten in JSON
+	// send the url that needs to be shortened and receive shorten in JSON
 	client.R().SetContext(ctx).SetBody(`{"url":"https://google.com"}`).Post(serverAddr + "/api/shorten")
-	// send  urls that needs to be shortened and recieve shorten in JSON
+	// send  urls that needs to be shortened and receive shorten in JSON
 	client.R().
 		SetContext(ctx).
 		SetBody(`[{"correlation_id": "q1", "original_url": "https://news.com"}, {"correlation_id": "q1", "original_url": "https://mail.com"}]`).
