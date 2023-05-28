@@ -1,3 +1,7 @@
+// Package controller is used to process user requests.
+// Each public method of `urlHandler` is associated with 1 API endpoint.
+// It prepares the data for forwarding to the use case layer and returns the HTTP err codes
+// depending on what the next layer returned.
 package controller
 
 import (
@@ -34,6 +38,7 @@ type urlHandler struct {
 	q       workers.Queue
 }
 
+// NewURLHandler create instance of `urlHandler` struct
 func NewURLHandler(u urlConverter, envBaseURL string, queue *workers.Queue) *urlHandler {
 	baseURL := "http://localhost:8080/"
 	if envBaseURL != "" {
@@ -79,6 +84,7 @@ func checkUserSession(c *gin.Context) (string, error) {
 	return userID, nil
 }
 
+// GetID handler gets full URL from storage by shorten.
 func (h *urlHandler) GetID(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
 	defer cancel()
@@ -96,6 +102,7 @@ func (h *urlHandler) GetID(c *gin.Context) {
 	}
 }
 
+// URLToID shorten URL for user.
 func (h *urlHandler) URLToID(c *gin.Context) {
 	userID, err := checkUserSession(c)
 	if err != nil {
@@ -116,6 +123,7 @@ func (h *urlHandler) URLToID(c *gin.Context) {
 	c.String(http.StatusCreated, h.baseURL+string(shortURL))
 }
 
+// DeleteURL deletes full URL for requested user.
 func (h *urlHandler) DeleteURL(c *gin.Context) {
 	userID, err := checkUserSession(c)
 	if err != nil {
@@ -133,6 +141,8 @@ func (h *urlHandler) DeleteURL(c *gin.Context) {
 	c.String(http.StatusAccepted, "")
 }
 
+// BatchURLToIDInJSON receives a request from a user with plenty of URLs
+// that need to be shortened in json format and shortens them.
 func (h *urlHandler) BatchURLToIDInJSON(c *gin.Context) {
 	var requestJSON []entity.ModelURLBatchRequest
 	var shortenURL entity.ModelURLBatchResponse
@@ -161,6 +171,8 @@ func (h *urlHandler) BatchURLToIDInJSON(c *gin.Context) {
 	c.JSON(http.StatusCreated, response)
 }
 
+// URLToIDInJSON receives a request from a user in json format with one URL
+// that need to be shortened  and shortens them.
 func (h *urlHandler) URLToIDInJSON(c *gin.Context) {
 	userID, err := checkUserSession(c)
 	if err != nil {
@@ -185,6 +197,7 @@ func (h *urlHandler) URLToIDInJSON(c *gin.Context) {
 	c.String(http.StatusCreated, "{\"result\":\""+h.baseURL+string(shortURL)+"\"}")
 }
 
+// GetIDForUser return all shorten URLs for requested user.
 func (h *urlHandler) GetIDForUser(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
 	defer cancel()
@@ -208,6 +221,7 @@ func (h *urlHandler) GetIDForUser(c *gin.Context) {
 	}
 }
 
+// CheckDBConnection ping DB.
 func (h *urlHandler) CheckDBConnection(c *gin.Context) {
 	err := h.uc.PingDB()
 	if err != nil {
