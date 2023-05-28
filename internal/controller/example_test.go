@@ -34,5 +34,4 @@ func Example() {
 		Delete(serverAddr + "/api/user/urls")
 	// check DB connection
 	client.R().SetContext(ctx).Get(serverAddr + "/ping")
-
 }
