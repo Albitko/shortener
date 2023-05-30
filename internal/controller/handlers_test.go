@@ -20,7 +20,7 @@ import (
 	"github.com/Albitko/shortener/internal/entity"
 	"github.com/Albitko/shortener/internal/repo/memstorage"
 	"github.com/Albitko/shortener/internal/repo/postgres"
-	"github.com/Albitko/shortener/internal/repo/user_memstorage"
+	"github.com/Albitko/shortener/internal/repo/usermemstorage"
 	"github.com/Albitko/shortener/internal/usecase"
 	"github.com/Albitko/shortener/internal/workers"
 )
@@ -82,7 +82,7 @@ func setupRouter() *gin.Engine {
 	repository := memstorage.New(cfg.FileStoragePath)
 	defer repository.Close()
 	r = repository
-	userRepository := user_memstorage.New()
+	userRepository := usermemstorage.New()
 	uc := usecase.New(repository, userRepository, db)
 	if cfg.DatabaseDSN != "" {
 		db = postgres.New(ctx, cfg.DatabaseDSN)

@@ -1,4 +1,4 @@
-package user_memstorage
+package usermemstorage
 
 import (
 	"context"
