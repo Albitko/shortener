@@ -1,4 +1,4 @@
-package repo
+package user_memstorage
 
 import (
 	"context"
@@ -27,8 +27,8 @@ func (r *userMemRepository) GetUserURLsByUserID(c context.Context, userID string
 	return urls, ok
 }
 
-// NewUserRepo create userStorageCache instance.
-func NewUserRepo() *userMemRepository {
+// New create userStorageCache instance.
+func New() *userMemRepository {
 	return &userMemRepository{
 		userStorageCache: make(map[string]map[string]string),
 	}

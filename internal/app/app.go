@@ -11,7 +11,9 @@ import (
 
 	"github.com/Albitko/shortener/internal/controller"
 	"github.com/Albitko/shortener/internal/entity"
-	"github.com/Albitko/shortener/internal/repo"
+	"github.com/Albitko/shortener/internal/repo/memstorage"
+	"github.com/Albitko/shortener/internal/repo/postgres"
+	"github.com/Albitko/shortener/internal/repo/user_memstorage"
 	"github.com/Albitko/shortener/internal/usecase"
 	"github.com/Albitko/shortener/internal/workers"
 )
@@ -22,25 +24,25 @@ type rep interface {
 
 // Run main application func that runs App
 func Run(cfg entity.Config) {
-	var db *repo.DB
+	var db *postgres.DB
 	var r rep
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	repository := repo.NewRepository(cfg.FileStoragePath)
+	repository := memstorage.New(cfg.FileStoragePath)
 	defer repository.Close()
-	userRepository := repo.NewUserRepo()
-	uc := usecase.NewURLConverter(repository, userRepository, db)
+	userRepository := user_memstorage.New()
+	uc := usecase.New(repository, userRepository, db)
 	r = repository
 	if cfg.DatabaseDSN != "" {
-		db = repo.NewPostgres(ctx, cfg.DatabaseDSN)
+		db = postgres.New(ctx, cfg.DatabaseDSN)
 		defer db.Close()
-		uc = usecase.NewURLConverter(db, db, db)
+		uc = usecase.New(db, db, db)
 		r = db
 	}
 
-	queue := workers.InitWorkers(ctx, r)
-	handler := controller.NewURLHandler(uc, cfg.BaseURL, queue)
+	queue := workers.Init(ctx, r)
+	handler := controller.New(uc, cfg.BaseURL, queue)
 	store := cookie.NewStore([]byte(cfg.CookiesStorageSecret))
 
 	router := gin.New()

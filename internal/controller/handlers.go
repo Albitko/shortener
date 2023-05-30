@@ -21,7 +21,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/Albitko/shortener/internal/entity"
-	"github.com/Albitko/shortener/internal/repo"
+	"github.com/Albitko/shortener/internal/repo/postgres"
 	"github.com/Albitko/shortener/internal/workers"
 )
 
@@ -38,8 +38,8 @@ type urlHandler struct {
 	q       workers.Queue
 }
 
-// NewURLHandler create instance of `urlHandler` struct
-func NewURLHandler(u urlConverter, envBaseURL string, queue *workers.Queue) *urlHandler {
+// New create instance of `urlHandler` struct
+func New(u urlConverter, envBaseURL string, queue *workers.Queue) *urlHandler {
 	baseURL := "http://localhost:8080/"
 	if envBaseURL != "" {
 		baseURL = envBaseURL + "/"
@@ -95,7 +95,7 @@ func (h *urlHandler) GetID(c *gin.Context) {
 	case err == nil:
 		c.Header("Location", string(originalURL))
 		c.Status(http.StatusTemporaryRedirect)
-	case errors.Is(err, repo.ErrURLDeleted):
+	case errors.Is(err, postgres.ErrURLDeleted):
 		c.String(http.StatusGone, "")
 	default:
 		c.Status(http.StatusBadRequest)
@@ -116,7 +116,7 @@ func (h *urlHandler) URLToID(c *gin.Context) {
 
 	shortURL, urlError := processURL(c, h, string(originalURL), userID)
 
-	if errors.Is(urlError, repo.ErrURLAlreadyExists) {
+	if errors.Is(urlError, postgres.ErrURLAlreadyExists) {
 		c.String(http.StatusConflict, h.baseURL+string(shortURL))
 		return
 	}
@@ -189,7 +189,7 @@ func (h *urlHandler) URLToIDInJSON(c *gin.Context) {
 
 	log.Print("POST URL:", requestJSON["url"], " id: ", shortURL, "\n")
 
-	if errors.Is(urlError, repo.ErrURLAlreadyExists) {
+	if errors.Is(urlError, postgres.ErrURLAlreadyExists) {
 		c.String(http.StatusConflict, "{\"result\":\""+h.baseURL+string(shortURL)+"\"}")
 		return
 	}

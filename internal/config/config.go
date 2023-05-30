@@ -9,9 +9,9 @@ import (
 	"github.com/Albitko/shortener/internal/entity"
 )
 
-// NewConfig create app config. If the application is running with keys, then it sets their values.
+// New create app config. If the application is running with keys, then it sets their values.
 // If environment variables are set, their values will overwrite the values set by the keys.
-func NewConfig() entity.Config {
+func New() entity.Config {
 	var cfg entity.Config
 
 	flag.StringVar(&cfg.ServerAddress, "a", ":8080", "port to listen on")

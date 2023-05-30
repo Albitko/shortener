@@ -1,4 +1,4 @@
-package repo
+package postgres
 
 import (
 	"context"
@@ -164,8 +164,8 @@ func (d *DB) Ping() error {
 	return nil
 }
 
-// NewPostgres connect to DB and crete tables if needed.
-func NewPostgres(ctx context.Context, psqlConn string) *DB {
+// New connect to DB and crete tables if needed.
+func New(ctx context.Context, psqlConn string) *DB {
 	db, err := sql.Open("pgx", psqlConn)
 	if err != nil {
 		log.Fatal(err)

@@ -88,8 +88,8 @@ func (w *Worker) loop() {
 	}
 }
 
-// InitWorkers create queue and workers.
-func InitWorkers(ctx context.Context, r repository) *Queue {
+// Init create queue and workers.
+func Init(ctx context.Context, r repository) *Queue {
 	queue := newQueue()
 	wrkrs := make([]*Worker, 0, runtime.NumCPU())
 

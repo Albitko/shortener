@@ -7,7 +7,7 @@ import (
 	"log"
 
 	"github.com/Albitko/shortener/internal/entity"
-	"github.com/Albitko/shortener/internal/repo"
+	"github.com/Albitko/shortener/internal/repo/postgres"
 )
 
 type repository interface {
@@ -24,7 +24,7 @@ type userRepository interface {
 type urlConverter struct {
 	repo     repository
 	userRepo userRepository
-	pg       *repo.DB
+	pg       *postgres.DB
 }
 
 // URLToID generate short URL and add it to DB.
@@ -77,8 +77,8 @@ func (uc *urlConverter) PingDB() error {
 	return err
 }
 
-// NewURLConverter create urlConverter instance.
-func NewURLConverter(r repository, u userRepository, d *repo.DB) *urlConverter {
+// New create urlConverter instance.
+func New(r repository, u userRepository, d *postgres.DB) *urlConverter {
 	return &urlConverter{
 		repo:     r,
 		userRepo: u,
