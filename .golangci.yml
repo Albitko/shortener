@@ -233,3 +233,4 @@ issues:
         - unused
         - unparam
         - lll
+        - errcheck

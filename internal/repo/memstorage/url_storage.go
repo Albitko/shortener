@@ -1,4 +1,4 @@
-package repo
+package memstorage
 
 import (
 	"bufio"
@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	"github.com/Albitko/shortener/internal/entity"
+	"github.com/Albitko/shortener/internal/repo/postgres"
 )
 
 type memRepository struct {
@@ -20,7 +21,8 @@ type memRepository struct {
 	isFileStorageSet bool
 }
 
-func NewRepository(path string) *memRepository {
+// New create in memory storage. Can load data from file.
+func New(path string) *memRepository {
 	dataFromFile := make(map[entity.URLID]entity.OriginalURL)
 	file, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_APPEND|os.O_SYNC, 0o777)
 	isFileSet := false
@@ -52,6 +54,7 @@ func NewRepository(path string) *memRepository {
 	}
 }
 
+// AddURL store short and original URL pair.
 func (r *memRepository) AddURL(c context.Context, id entity.URLID, url entity.OriginalURL) {
 	r.Lock()
 	defer r.Unlock()
@@ -68,15 +71,17 @@ func (r *memRepository) AddURL(c context.Context, id entity.URLID, url entity.Or
 	}
 }
 
+// BatchDeleteShortURLs remove short urls.
 func (r *memRepository) BatchDeleteShortURLs(c context.Context, ids []entity.ModelURLForDelete) error {
 	r.Lock()
 	defer r.Unlock()
-	for _, id := range ids {
-		r.storageCache[entity.URLID(id.ShortURL)] = ""
+	for i := range ids {
+		r.storageCache[entity.URLID(ids[i].ShortURL)] = ""
 	}
 	return nil
 }
 
+// GetURLByID get original URL by short.
 func (r *memRepository) GetURLByID(c context.Context, id entity.URLID) (entity.OriginalURL, error) {
 	r.RLock()
 	defer r.RUnlock()
@@ -84,7 +89,7 @@ func (r *memRepository) GetURLByID(c context.Context, id entity.URLID) (entity.O
 	url, ok := r.storageCache[id]
 	switch {
 	case ok && string(url) == "":
-		err = ErrURLDeleted
+		err = postgres.ErrURLDeleted
 	case ok:
 		err = nil
 	default:
@@ -93,6 +98,7 @@ func (r *memRepository) GetURLByID(c context.Context, id entity.URLID) (entity.O
 	return url, err
 }
 
+// Close file storage.
 func (r *memRepository) Close() error {
 	return r.fileStorage.Close()
 }

@@ -18,7 +18,9 @@ import (
 
 	"github.com/Albitko/shortener/internal/config"
 	"github.com/Albitko/shortener/internal/entity"
-	"github.com/Albitko/shortener/internal/repo"
+	"github.com/Albitko/shortener/internal/repo/memstorage"
+	"github.com/Albitko/shortener/internal/repo/postgres"
+	"github.com/Albitko/shortener/internal/repo/usermemstorage"
 	"github.com/Albitko/shortener/internal/usecase"
 	"github.com/Albitko/shortener/internal/workers"
 )
@@ -72,25 +74,25 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string, body []
 }
 
 func setupRouter() *gin.Engine {
-	cfg := config.NewConfig()
-	var db *repo.DB
+	cfg := config.New()
+	var db *postgres.DB
 	var r rep
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	repository := repo.NewRepository(cfg.FileStoragePath)
+	repository := memstorage.New(cfg.FileStoragePath)
 	defer repository.Close()
 	r = repository
-	userRepository := repo.NewUserRepo()
-	uc := usecase.NewURLConverter(repository, userRepository, db)
+	userRepository := usermemstorage.New()
+	uc := usecase.New(repository, userRepository, db)
 	if cfg.DatabaseDSN != "" {
-		db = repo.NewPostgres(ctx, cfg.DatabaseDSN)
+		db = postgres.New(ctx, cfg.DatabaseDSN)
 		defer db.Close()
-		uc = usecase.NewURLConverter(db, db, db)
+		uc = usecase.New(db, db, db)
 		r = db
 	}
 
-	queue := workers.InitWorkers(ctx, r)
-	handler := NewURLHandler(uc, cfg.BaseURL, queue)
+	queue := workers.Init(ctx, r)
+	handler := New(uc, cfg.BaseURL, queue)
 	store := cookie.NewStore([]byte(cfg.CookiesStorageSecret))
 
 	router := gin.New()
@@ -159,8 +161,8 @@ func TestRouter(t *testing.T) {
 	s, _, _ := testRequest(t, ts, "DELETE", "/api/user/urls", []byte(`["L4hn_ks5jl", "Ibh-weQcwK", "2J_SGlAgcs"]`), false)
 	assert.Equal(t, http.StatusAccepted, s)
 
-	for _, url := range shortenURLs {
-		s, _, _ := testRequest(t, ts, "GET", "/"+url, nil, false)
+	for i := range shortenURLs {
+		s, _, _ := testRequest(t, ts, "GET", "/"+shortenURLs[i], nil, false)
 		assert.Equal(t, http.StatusGone, s)
 	}
 }

@@ -12,11 +12,13 @@ type repository interface {
 	BatchDeleteShortURLs(context.Context, []entity.ModelURLForDelete) error
 }
 
+// Task type that represents short url that should be deleted for user.
 type Task struct {
 	UserID       string
 	IDsForDelete []string
 }
 
+// Queue of tasks.
 type Queue struct {
 	ch chan *Task
 }
@@ -27,14 +29,17 @@ func newQueue() *Queue {
 	}
 }
 
+// Push add task to queue.
 func (q *Queue) Push(t *Task) {
 	q.ch <- t
 }
 
+// PopWait get task from queue.
 func (q *Queue) PopWait() *Task {
 	return <-q.ch
 }
 
+// Deleter type that delete urls.
 type Deleter struct {
 	repo repository
 	ctx  context.Context
@@ -44,10 +49,12 @@ func newDeleter(ctx context.Context, r repository) *Deleter {
 	return &Deleter{repo: r, ctx: ctx}
 }
 
+// Delete delete urls from DB.
 func (d *Deleter) Delete(urlsForDelete []entity.ModelURLForDelete) error {
 	return d.repo.BatchDeleteShortURLs(d.ctx, urlsForDelete)
 }
 
+// Worker checks if queue is not empty and delete urls.
 type Worker struct {
 	id      int
 	queue   *Queue
@@ -68,9 +75,9 @@ func (w *Worker) loop() {
 		t := w.queue.PopWait()
 		var URLsForDelete []entity.ModelURLForDelete
 		var URLForDelete entity.ModelURLForDelete
-		for _, url := range t.IDsForDelete {
+		for i := range t.IDsForDelete {
 			URLForDelete.UserID = t.UserID
-			URLForDelete.ShortURL = url
+			URLForDelete.ShortURL = t.IDsForDelete[i]
 			URLsForDelete = append(URLsForDelete, URLForDelete)
 		}
 		err := w.deleter.Delete(URLsForDelete)
@@ -81,7 +88,8 @@ func (w *Worker) loop() {
 	}
 }
 
-func InitWorkers(ctx context.Context, r repository) *Queue {
+// Init create queue and workers.
+func Init(ctx context.Context, r repository) *Queue {
 	queue := newQueue()
 	wrkrs := make([]*Worker, 0, runtime.NumCPU())
 
@@ -89,8 +97,8 @@ func InitWorkers(ctx context.Context, r repository) *Queue {
 		wrkrs = append(wrkrs, newWorker(i, queue, newDeleter(ctx, r)))
 	}
 
-	for _, w := range wrkrs {
-		go w.loop()
+	for i := range wrkrs {
+		go wrkrs[i].loop()
 	}
 	return queue
 }

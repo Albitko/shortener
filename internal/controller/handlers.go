@@ -1,3 +1,7 @@
+// Package controller is used to process user requests.
+// Each public method of `urlHandler` is associated with 1 API endpoint.
+// It prepares the data for forwarding to the use case layer and returns the HTTP err codes
+// depending on what the next layer returned.
 package controller
 
 import (
@@ -17,7 +21,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/Albitko/shortener/internal/entity"
-	"github.com/Albitko/shortener/internal/repo"
+	"github.com/Albitko/shortener/internal/repo/postgres"
 	"github.com/Albitko/shortener/internal/workers"
 )
 
@@ -34,7 +38,8 @@ type urlHandler struct {
 	q       workers.Queue
 }
 
-func NewURLHandler(u urlConverter, envBaseURL string, queue *workers.Queue) *urlHandler {
+// New create instance of `urlHandler` struct
+func New(u urlConverter, envBaseURL string, queue *workers.Queue) *urlHandler {
 	baseURL := "http://localhost:8080/"
 	if envBaseURL != "" {
 		baseURL = envBaseURL + "/"
@@ -79,6 +84,7 @@ func checkUserSession(c *gin.Context) (string, error) {
 	return userID, nil
 }
 
+// GetID handler gets full URL from storage by shorten.
 func (h *urlHandler) GetID(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
 	defer cancel()
@@ -89,13 +95,14 @@ func (h *urlHandler) GetID(c *gin.Context) {
 	case err == nil:
 		c.Header("Location", string(originalURL))
 		c.Status(http.StatusTemporaryRedirect)
-	case errors.Is(err, repo.ErrURLDeleted):
+	case errors.Is(err, postgres.ErrURLDeleted):
 		c.String(http.StatusGone, "")
 	default:
 		c.Status(http.StatusBadRequest)
 	}
 }
 
+// URLToID shorten URL for user.
 func (h *urlHandler) URLToID(c *gin.Context) {
 	userID, err := checkUserSession(c)
 	if err != nil {
@@ -109,13 +116,14 @@ func (h *urlHandler) URLToID(c *gin.Context) {
 
 	shortURL, urlError := processURL(c, h, string(originalURL), userID)
 
-	if errors.Is(urlError, repo.ErrURLAlreadyExists) {
+	if errors.Is(urlError, postgres.ErrURLAlreadyExists) {
 		c.String(http.StatusConflict, h.baseURL+string(shortURL))
 		return
 	}
 	c.String(http.StatusCreated, h.baseURL+string(shortURL))
 }
 
+// DeleteURL deletes full URL for requested user.
 func (h *urlHandler) DeleteURL(c *gin.Context) {
 	userID, err := checkUserSession(c)
 	if err != nil {
@@ -133,6 +141,8 @@ func (h *urlHandler) DeleteURL(c *gin.Context) {
 	c.String(http.StatusAccepted, "")
 }
 
+// BatchURLToIDInJSON receives a request from a user with plenty of URLs
+// that need to be shortened in json format and shortens them.
 func (h *urlHandler) BatchURLToIDInJSON(c *gin.Context) {
 	var requestJSON []entity.ModelURLBatchRequest
 	var shortenURL entity.ModelURLBatchResponse
@@ -150,17 +160,19 @@ func (h *urlHandler) BatchURLToIDInJSON(c *gin.Context) {
 
 	response := make([]entity.ModelURLBatchResponse, 0, len(requestJSON))
 
-	for _, val := range requestJSON {
-		shortenURL.CorrelationID = val.CorrelationID
-		shortID, _ := processURL(c, h, val.OriginalURL, userID)
+	for i := range requestJSON {
+		shortenURL.CorrelationID = requestJSON[i].CorrelationID
+		shortID, _ := processURL(c, h, requestJSON[i].OriginalURL, userID)
 		shortenURL.ShortURL = h.baseURL + string(shortID)
 		response = append(response, shortenURL)
-		log.Print("POST URL:", val.OriginalURL, " id: ", shortenURL.ShortURL, "\n")
+		log.Print("POST URL:", requestJSON[i].OriginalURL, " id: ", shortenURL.ShortURL, "\n")
 	}
 
 	c.JSON(http.StatusCreated, response)
 }
 
+// URLToIDInJSON receives a request from a user in json format with one URL
+// that need to be shortened  and shortens them.
 func (h *urlHandler) URLToIDInJSON(c *gin.Context) {
 	userID, err := checkUserSession(c)
 	if err != nil {
@@ -177,7 +189,7 @@ func (h *urlHandler) URLToIDInJSON(c *gin.Context) {
 
 	log.Print("POST URL:", requestJSON["url"], " id: ", shortURL, "\n")
 
-	if errors.Is(urlError, repo.ErrURLAlreadyExists) {
+	if errors.Is(urlError, postgres.ErrURLAlreadyExists) {
 		c.String(http.StatusConflict, "{\"result\":\""+h.baseURL+string(shortURL)+"\"}")
 		return
 	}
@@ -185,6 +197,7 @@ func (h *urlHandler) URLToIDInJSON(c *gin.Context) {
 	c.String(http.StatusCreated, "{\"result\":\""+h.baseURL+string(shortURL)+"\"}")
 }
 
+// GetIDForUser return all shorten URLs for requested user.
 func (h *urlHandler) GetIDForUser(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
 	defer cancel()
@@ -208,6 +221,7 @@ func (h *urlHandler) GetIDForUser(c *gin.Context) {
 	}
 }
 
+// CheckDBConnection ping DB.
 func (h *urlHandler) CheckDBConnection(c *gin.Context) {
 	err := h.uc.PingDB()
 	if err != nil {
