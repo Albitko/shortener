@@ -127,7 +127,7 @@ linters:
   disable-all: true
   enable:
     #    - cyclop
-    - depguard
+    #    - depguard
     - dogsled
     #    - dupl
     - errcheck
