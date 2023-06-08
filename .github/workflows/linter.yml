@@ -34,7 +34,7 @@ jobs:
       - name: Build static lint binary
         run: |
           cd cmd/staticlint
-          go build -o staticlint
+          go build -o staticlint -buildvcs=false
 
       - name: Run static lint
         run: |
