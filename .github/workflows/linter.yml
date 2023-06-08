@@ -18,3 +18,21 @@ jobs:
         uses: golangci/golangci-lint-action@v3
         with:
           version: latest
+
+  my-static-tests:
+    runs-on: ubuntu-latest
+    container: golang:1.19
+
+    steps:
+      - name: Setup go deps
+        run: |
+          go install golang.org/x/tools/cmd/goimports@latest
+
+      - name: Build static lint binary
+        run: |
+          cd cmd/staticlint
+          go build -o staticlint
+
+      - name: Run static lint
+        run: |
+          staticlint
