@@ -19,8 +19,8 @@ func checkBuild(setting, name string) {
 		return
 	}
 	fmt.Println("Build ", name, ": ", setting)
-
 }
+
 func main() {
 	checkBuild(buildVersion, "version")
 	checkBuild(buildDate, "date")
