@@ -40,19 +40,26 @@ func generateCertAndKey() (bytes.Buffer, bytes.Buffer, error) {
 		return certPEM, privateKeyPEM, err
 	}
 
-	pem.Encode(&certPEM, &pem.Block{
+	err = pem.Encode(&certPEM, &pem.Block{
 		Type:  "CERTIFICATE",
 		Bytes: certBytes,
 	})
+	if err != nil {
+		return certPEM, privateKeyPEM, err
+	}
 
-	pem.Encode(&privateKeyPEM, &pem.Block{
+	err = pem.Encode(&privateKeyPEM, &pem.Block{
 		Type:  "RSA PRIVATE KEY",
 		Bytes: x509.MarshalPKCS1PrivateKey(privateKey),
 	})
+	if err != nil {
+		return certPEM, privateKeyPEM, err
+	}
 
 	return certPEM, privateKeyPEM, nil
 }
 
+// CreateCertAndKeyFiles crate certs for server in HTTPS mode
 func CreateCertAndKeyFiles() (string, string, error) {
 	certPath := "localhost.pem"
 	keyPath := "localhost.key"
@@ -62,11 +69,11 @@ func CreateCertAndKeyFiles() (string, string, error) {
 		return certPath, keyPath, err
 	}
 
-	err = os.WriteFile(certPath, crtBytes.Bytes(), 0644)
+	err = os.WriteFile(certPath, crtBytes.Bytes(), 0o600)
 	if err != nil {
 		return certPath, keyPath, err
 	}
-	err = os.WriteFile(keyPath, keyBytes.Bytes(), 0644)
+	err = os.WriteFile(keyPath, keyBytes.Bytes(), 0o600)
 
 	if err != nil {
 		return certPath, keyPath, err

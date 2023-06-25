@@ -61,10 +61,10 @@ func Run(cfg entity.Config) {
 	router.GET("/ping", handler.CheckDBConnection)
 	router.DELETE("/api/user/urls", handler.DeleteURL)
 
-	if cfg.EnableHTTPS == true {
-		certPath, keyPath, err := utils.CreateCertAndKeyFiles()
+	if cfg.EnableHTTPS {
+		certPath, keyPath, errCertCreate := utils.CreateCertAndKeyFiles()
 		if err != nil {
-			log.Print("error crete crt anf key files for HTTPS ", err)
+			log.Print("error crete crt anf key files for HTTPS ", errCertCreate)
 		}
 		err = router.RunTLS(cfg.ServerAddress, certPath, keyPath)
 	} else {
