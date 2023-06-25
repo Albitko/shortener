@@ -19,6 +19,7 @@ func New() entity.Config {
 	flag.StringVar(&cfg.FileStoragePath, "f", "", "File that stores URL -> ID")
 	flag.StringVar(&cfg.CookiesStorageSecret, "c", "secret", "secret for cookies storage")
 	flag.StringVar(&cfg.DatabaseDSN, "d", "", "connection URL for Postgres")
+	flag.BoolVar(&cfg.EnableHTTPS, "s", false, "enable HTTPS serve")
 	flag.Parse()
 
 	err := env.Parse(&cfg)
