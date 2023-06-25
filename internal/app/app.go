@@ -63,7 +63,7 @@ func Run(cfg entity.Config) {
 
 	if cfg.EnableHTTPS {
 		certPath, keyPath, errCertCreate := utils.CreateCertAndKeyFiles()
-		if err != nil {
+		if errCertCreate != nil {
 			log.Print("error crete crt anf key files for HTTPS ", errCertCreate)
 		}
 		err = router.RunTLS(cfg.ServerAddress, certPath, keyPath)
