@@ -16,6 +16,16 @@ type Config struct {
 	CookiesStorageSecret string `env:"COOKIES_STORAGE_SECRET"`
 	DatabaseDSN          string `env:"DATABASE_DSN"`
 	EnableHTTPS          bool   `env:"ENABLE_HTTPS"`
+	Config               string `env:"CONFIG"`
+}
+
+// JSONConfig type that define app configurations
+type JSONConfig struct {
+	ServerAddress   string `json:"server_address"`
+	BaseURL         string `json:"base_url"`
+	FileStoragePath string `json:"file_storage_path"`
+	DatabaseDsn     string `json:"database_dsn"`
+	EnableHTTPS     bool   `json:"enable_https"`
 }
 
 // ModelURLForDelete type that represents JSON struct for deleting via
