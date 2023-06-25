@@ -15,6 +15,7 @@ import (
 	"github.com/Albitko/shortener/internal/repo/postgres"
 	"github.com/Albitko/shortener/internal/repo/usermemstorage"
 	"github.com/Albitko/shortener/internal/usecase"
+	"github.com/Albitko/shortener/internal/utils"
 	"github.com/Albitko/shortener/internal/workers"
 )
 
@@ -26,6 +27,7 @@ type rep interface {
 func Run(cfg entity.Config) {
 	var db *postgres.DB
 	var r rep
+	var err error
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -59,7 +61,15 @@ func Run(cfg entity.Config) {
 	router.GET("/ping", handler.CheckDBConnection)
 	router.DELETE("/api/user/urls", handler.DeleteURL)
 
-	err := router.Run(cfg.ServerAddress)
+	if cfg.EnableHTTPS == true {
+		certPath, keyPath, err := utils.CreateCertAndKeyFiles()
+		if err != nil {
+			log.Print("error crete crt anf key files for HTTPS ", err)
+		}
+		err = router.RunTLS(cfg.ServerAddress, certPath, keyPath)
+	} else {
+		err = router.Run(cfg.ServerAddress)
+	}
 	if err != nil {
 		log.Print("Couldn't  start server ", err)
 		return
