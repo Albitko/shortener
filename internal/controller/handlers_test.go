@@ -92,7 +92,7 @@ func setupRouter() *gin.Engine {
 	}
 
 	queue := workers.Init(ctx, r)
-	handler := New(uc, cfg.BaseURL, queue)
+	handler := New(uc, cfg, queue)
 	store := cookie.NewStore([]byte(cfg.CookiesStorageSecret))
 
 	router := gin.New()
