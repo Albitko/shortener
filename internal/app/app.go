@@ -48,7 +48,7 @@ func Run(cfg entity.Config) {
 	}
 
 	queue := workers.Init(ctx, r)
-	handler := controller.New(uc, cfg.BaseURL, queue)
+	handler := controller.New(uc, cfg, queue)
 	store := cookie.NewStore([]byte(cfg.CookiesStorageSecret))
 
 	router := gin.New()
@@ -63,6 +63,7 @@ func Run(cfg entity.Config) {
 	router.GET("/:id", handler.GetID)
 	router.GET("/api/user/urls", handler.GetIDForUser)
 	router.GET("/ping", handler.CheckDBConnection)
+	router.GET("/api/internal/stats", handler.Stats)
 	router.DELETE("/api/user/urls", handler.DeleteURL)
 
 	srv := &http.Server{
