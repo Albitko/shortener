@@ -21,6 +21,7 @@ func New() entity.Config {
 	flag.StringVar(&cfg.DatabaseDSN, "d", "", "connection URL for Postgres")
 	flag.BoolVar(&cfg.EnableHTTPS, "s", false, "enable HTTPS serve")
 	flag.StringVar(&cfg.Config, "c", "", "path to JSON config")
+	flag.StringVar(&cfg.Config, "t", "", "trusted subnet IPs mask")
 	flag.Parse()
 
 	err := env.Parse(&cfg)
