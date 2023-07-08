@@ -37,6 +37,43 @@ type DB struct {
 	ctx context.Context
 }
 
+// GetUsersCount return count of users in service
+func (d *DB) GetUsersCount(ctx context.Context) (int, error) {
+	var count int
+
+	usersCount, err := d.db.PrepareContext(
+		ctx, "SELECT COUNT(*) FROM (SELECT DISTINCT user_id FROM urls) AS cnt;",
+	)
+	if err != nil {
+		return count, err
+	}
+	defer usersCount.Close()
+	err = usersCount.QueryRowContext(ctx).Scan(&count)
+	if err != nil {
+		return count, err
+	}
+	return count, nil
+}
+
+// GetURLsCount return urls count shorten in service
+func (d *DB) GetURLsCount(ctx context.Context) (int, error) {
+	var count int
+
+	selectURLs, err := d.db.PrepareContext(
+		ctx, "SELECT COUNT(*) FROM (SELECT DISTINCT original_url FROM urls) AS cnt;",
+	)
+	if err != nil {
+		return count, err
+	}
+	defer selectURLs.Close()
+	err = selectURLs.QueryRowContext(ctx).Scan(&count)
+	fmt.Println("SCANNED count ", count)
+	if err != nil {
+		return count, err
+	}
+	return count, nil
+}
+
 // Close closing connection.
 func (d *DB) Close() {
 	d.db.Close()
