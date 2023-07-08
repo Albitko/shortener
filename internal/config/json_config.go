@@ -45,6 +45,9 @@ func parseJSON(pathToJSONCfg string, cfg *entity.Config) error {
 	if jsonCfg.DatabaseDsn != "" {
 		cfg.DatabaseDSN = jsonCfg.DatabaseDsn
 	}
+	if jsonCfg.TrustedSubnet != "" {
+		cfg.TrustedSubnet = jsonCfg.TrustedSubnet
+	}
 
 	return nil
 }
