@@ -236,6 +236,7 @@ func (h *urlHandler) CheckDBConnection(c *gin.Context) {
 	}
 }
 
+// Stats return JSON with count of users and URLs in service
 func (h *urlHandler) Stats(c *gin.Context) {
 	if h.trustedNetwork == "" {
 		c.String(http.StatusForbidden, "")

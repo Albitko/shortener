@@ -38,7 +38,6 @@ func (uc *urlConverter) GetStats(ctx context.Context) (entity.URLStats, error) {
 		return stats, err
 	}
 	urlsCount, err := uc.repo.GetURLsCount(ctx)
-
 	if err != nil {
 		return stats, err
 	}
