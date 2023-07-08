@@ -3,6 +3,10 @@ package app
 import (
 	"context"
 	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-contrib/sessions"
@@ -15,6 +19,7 @@ import (
 	"github.com/Albitko/shortener/internal/repo/postgres"
 	"github.com/Albitko/shortener/internal/repo/usermemstorage"
 	"github.com/Albitko/shortener/internal/usecase"
+	"github.com/Albitko/shortener/internal/utils"
 	"github.com/Albitko/shortener/internal/workers"
 )
 
@@ -26,17 +31,18 @@ type rep interface {
 func Run(cfg entity.Config) {
 	var db *postgres.DB
 	var r rep
+	var err error
 
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	repository := memstorage.New(cfg.FileStoragePath)
-	defer repository.Close()
+
 	userRepository := usermemstorage.New()
 	uc := usecase.New(repository, userRepository, db)
 	r = repository
 	if cfg.DatabaseDSN != "" {
 		db = postgres.New(ctx, cfg.DatabaseDSN)
-		defer db.Close()
 		uc = usecase.New(db, db, db)
 		r = db
 	}
@@ -59,9 +65,40 @@ func Run(cfg entity.Config) {
 	router.GET("/ping", handler.CheckDBConnection)
 	router.DELETE("/api/user/urls", handler.DeleteURL)
 
-	err := router.Run(cfg.ServerAddress)
-	if err != nil {
-		log.Print("Couldn't  start server ", err)
-		return
+	srv := &http.Server{
+		Addr:    cfg.ServerAddress,
+		Handler: router,
+	}
+	go func() {
+		<-signalChan
+
+		log.Println("Shutting down...")
+		cancel()
+		if err = srv.Shutdown(ctx); err != nil {
+			log.Println("error shutting down the server: ", err)
+		}
+
+		err = repository.Close()
+		if err != nil {
+			log.Println("error closing database: ", err)
+			return
+		}
+		if cfg.DatabaseDSN != "" {
+			db.Close()
+		}
+	}()
+
+	if cfg.EnableHTTPS {
+		certPath, keyPath, errCertCreate := utils.CreateCertAndKeyFiles()
+		if errCertCreate != nil {
+			log.Print("error crete crt anf key files for HTTPS ", errCertCreate)
+		}
+		if err = srv.ListenAndServeTLS(certPath, keyPath); err != nil {
+			log.Println("Couldn't  start server: ", err)
+		}
+	} else {
+		if err = srv.ListenAndServe(); err != nil {
+			log.Println("Couldn't  start server: ", err)
+		}
 	}
 }

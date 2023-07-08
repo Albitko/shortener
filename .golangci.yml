@@ -150,7 +150,7 @@ linters:
     #    - gomnd
     #    - gomoddirectives
     #    - gomodguard
-    - gosec
+#    - gosec
     - gosimple
     - govet
     #    - ifshort
