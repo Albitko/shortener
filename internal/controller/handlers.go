@@ -239,6 +239,7 @@ func (h *urlHandler) CheckDBConnection(c *gin.Context) {
 func (h *urlHandler) Stats(c *gin.Context) {
 	if h.trustedNetwork == "" {
 		c.String(http.StatusForbidden, "")
+		return
 	}
 	network, err := netip.ParsePrefix(h.trustedNetwork)
 	if err != nil {
