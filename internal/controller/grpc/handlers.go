@@ -139,8 +139,7 @@ func (g *grpcHandlers) GetStats(ctx context.Context, in *pb.GetStatsRequest) (*p
 func (g *grpcHandlers) GetURLsByUserID(
 	ctx context.Context, in *pb.GetURLsByUserIDRequest,
 ) (*pb.GetURLsByUserIDResponse, error) {
-	var resp *pb.GetURLsByUserIDResponse
-
+	resp := &pb.GetURLsByUserIDResponse{}
 	user := getUser(ctx)
 	if user == "" {
 		return resp, fmt.Errorf("no user in metadata")
