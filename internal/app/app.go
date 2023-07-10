@@ -13,7 +13,7 @@ import (
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
 
-	"github.com/Albitko/shortener/internal/controller"
+	http2 "github.com/Albitko/shortener/internal/controller/http"
 	"github.com/Albitko/shortener/internal/entity"
 	"github.com/Albitko/shortener/internal/repo/memstorage"
 	"github.com/Albitko/shortener/internal/repo/postgres"
@@ -48,7 +48,7 @@ func Run(cfg entity.Config) {
 	}
 
 	queue := workers.Init(ctx, r)
-	handler := controller.New(uc, cfg, queue)
+	handler := http2.New(uc, cfg, queue)
 	store := cookie.NewStore([]byte(cfg.CookiesStorageSecret))
 
 	router := gin.New()
