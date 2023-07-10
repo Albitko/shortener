@@ -77,6 +77,9 @@ func (g *grpcHandlers) ShortenURLBatch(
 	}
 
 	for i, val := range response {
+		if resp.ResponseUrls == nil {
+			continue
+		}
 		resp.ResponseUrls[i].Url = val.ShortURL
 		resp.ResponseUrls[i].CorrelationId = val.CorrelationID
 	}
