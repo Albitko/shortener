@@ -2,7 +2,7 @@
 // Each public method of `urlHandler` is associated with 1 API endpoint.
 // It prepares the data for forwarding to the use case layer and returns the HTTP err codes
 // depending on what the next layer returned.
-package controller
+package http
 
 import (
 	"context"
