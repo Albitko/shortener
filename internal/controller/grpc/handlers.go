@@ -61,8 +61,8 @@ func (g *grpcHandlers) ShortenURL(ctx context.Context, in *pb.PostURLRequest) (*
 func (g *grpcHandlers) ShortenURLBatch(
 	ctx context.Context, in *pb.PostURLBatchRequest,
 ) (*pb.PostURLBatchResponse, error) {
-	var resp *pb.PostURLBatchResponse
 	var shortenURL entity.ModelURLBatchResponse
+	resp := &pb.PostURLBatchResponse{}
 
 	response := make([]entity.ModelURLBatchResponse, 0, len(in.RequestUrls))
 	user := getUser(ctx)
@@ -77,9 +77,6 @@ func (g *grpcHandlers) ShortenURLBatch(
 	}
 
 	for i, val := range response {
-		if resp.ResponseUrls == nil {
-			continue
-		}
 		resp.ResponseUrls[i].Url = val.ShortURL
 		resp.ResponseUrls[i].CorrelationId = val.CorrelationID
 	}
