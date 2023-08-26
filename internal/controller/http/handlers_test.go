@@ -1,4 +1,4 @@
-package controller
+package http
 
 import (
 	"bytes"
@@ -52,6 +52,7 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string, body []
 	} else {
 		req, err = http.NewRequest(method, ts.URL+path, bytes.NewBuffer(body))
 		req.Header.Set("Accept-Encoding", "identity")
+		req.Header.Add("X-Real-IP", "127.0.0.1")
 		require.NoError(t, err)
 	}
 
@@ -75,6 +76,7 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string, body []
 
 func setupRouter() *gin.Engine {
 	cfg := config.New()
+	cfg.TrustedSubnet = "127.0.0.0/24"
 	var db *postgres.DB
 	var r rep
 	ctx, cancel := context.WithCancel(context.Background())
@@ -92,7 +94,7 @@ func setupRouter() *gin.Engine {
 	}
 
 	queue := workers.Init(ctx, r)
-	handler := New(uc, cfg.BaseURL, queue)
+	handler := New(uc, cfg, queue)
 	store := cookie.NewStore([]byte(cfg.CookiesStorageSecret))
 
 	router := gin.New()
@@ -106,6 +108,7 @@ func setupRouter() *gin.Engine {
 	router.POST("/api/shorten/batch", handler.BatchURLToIDInJSON)
 	router.GET("/:id", handler.GetID)
 	router.GET("/api/user/urls", handler.GetIDForUser)
+	router.GET("/api/internal/stats", handler.Stats)
 	router.GET("/ping", handler.CheckDBConnection)
 	router.DELETE("/api/user/urls", handler.DeleteURL)
 	return router
@@ -165,4 +168,6 @@ func TestRouter(t *testing.T) {
 		s, _, _ := testRequest(t, ts, "GET", "/"+shortenURLs[i], nil, false)
 		assert.Equal(t, http.StatusGone, s)
 	}
+	st, _, _ := testRequest(t, ts, "GET", "/api/internal/stats", nil, false)
+	assert.Equal(t, http.StatusOK, st)
 }

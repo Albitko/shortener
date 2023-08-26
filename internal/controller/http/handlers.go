@@ -2,7 +2,7 @@
 // Each public method of `urlHandler` is associated with 1 API endpoint.
 // It prepares the data for forwarding to the use case layer and returns the HTTP err codes
 // depending on what the next layer returned.
-package controller
+package http
 
 import (
 	"context"
@@ -14,6 +14,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/netip"
 	"net/url"
 	"time"
 
@@ -30,24 +31,28 @@ type urlConverter interface {
 	IDToURL(context.Context, entity.URLID) (entity.OriginalURL, error)
 	UserIDToURLs(c context.Context, userID string) (map[string]string, bool)
 	PingDB() error
+	GetStats(context.Context) (entity.URLStats, error)
 }
 
 type urlHandler struct {
-	uc      urlConverter
-	baseURL string
-	q       workers.Queue
+	uc             urlConverter
+	baseURL        string
+	trustedNetwork string
+	q              workers.Queue
 }
 
 // New create instance of `urlHandler` struct
-func New(u urlConverter, envBaseURL string, queue *workers.Queue) *urlHandler {
+func New(u urlConverter, conf entity.Config, queue *workers.Queue) *urlHandler {
 	baseURL := "http://localhost:8080/"
-	if envBaseURL != "" {
-		baseURL = envBaseURL + "/"
+	if conf.BaseURL != "" {
+		baseURL = conf.BaseURL + "/"
 	}
+
 	return &urlHandler{
-		uc:      u,
-		baseURL: baseURL,
-		q:       *queue,
+		uc:             u,
+		baseURL:        baseURL,
+		trustedNetwork: conf.TrustedSubnet,
+		q:              *queue,
 	}
 }
 
@@ -229,4 +234,35 @@ func (h *urlHandler) CheckDBConnection(c *gin.Context) {
 	} else {
 		c.String(http.StatusOK, "")
 	}
+}
+
+// Stats return JSON with count of users and URLs in service
+func (h *urlHandler) Stats(c *gin.Context) {
+	if h.trustedNetwork == "" {
+		c.String(http.StatusForbidden, "")
+		return
+	}
+	network, err := netip.ParsePrefix(h.trustedNetwork)
+	if err != nil {
+		c.String(http.StatusInternalServerError, "")
+		return
+	}
+	ip, err := netip.ParseAddr(c.GetHeader("X-Real-IP"))
+	if err != nil {
+		c.String(http.StatusInternalServerError, "")
+		return
+	}
+
+	isAddrInNet := network.Contains(ip)
+	if !isAddrInNet {
+		c.String(http.StatusForbidden, "")
+		return
+	}
+
+	serviceStats, err := h.uc.GetStats(c)
+	if err != nil {
+		c.String(http.StatusInternalServerError, "")
+		return
+	}
+	c.JSON(http.StatusOK, serviceStats)
 }

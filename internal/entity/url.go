@@ -17,6 +17,7 @@ type Config struct {
 	DatabaseDSN          string `env:"DATABASE_DSN"`
 	EnableHTTPS          bool   `env:"ENABLE_HTTPS"`
 	Config               string `env:"CONFIG"`
+	TrustedSubnet        string `env:"TRUSTED_SUBNET"`
 }
 
 // JSONConfig type that define app configurations
@@ -26,6 +27,7 @@ type JSONConfig struct {
 	FileStoragePath string `json:"file_storage_path"`
 	DatabaseDsn     string `json:"database_dsn"`
 	EnableHTTPS     bool   `json:"enable_https"`
+	TrustedSubnet   string `json:"trusted_subnet"`
 }
 
 // ModelURLForDelete type that represents JSON struct for deleting via
@@ -51,4 +53,10 @@ type ModelURLBatchRequest struct {
 type ModelURLBatchResponse struct {
 	CorrelationID string `json:"correlation_id"`
 	ShortURL      string `json:"short_url"`
+}
+
+// URLStats describes count URLs and users in service
+type URLStats struct {
+	URLsCount  int `json:"urls"`
+	UsersCount int `json:"users"`
 }

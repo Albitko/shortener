@@ -10,6 +10,11 @@ type userMemRepository struct {
 	userStorageCache map[string]map[string]string
 }
 
+// GetUsersCount return count of users that shorten URLs in service
+func (r *userMemRepository) GetUsersCount(ctx context.Context) (int, error) {
+	return len(r.userStorageCache), nil
+}
+
 // AddUserURL add short and original urls pair for user.
 func (r *userMemRepository) AddUserURL(c context.Context, userID string, shortURL string, originalURL string) error {
 	r.Lock()

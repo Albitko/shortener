@@ -14,17 +14,37 @@ type repository interface {
 	AddURL(context.Context, entity.URLID, entity.OriginalURL)
 	GetURLByID(context.Context, entity.URLID) (entity.OriginalURL, error)
 	BatchDeleteShortURLs(context.Context, []entity.ModelURLForDelete) error
+	GetURLsCount(c context.Context) (int, error)
 }
 
 type userRepository interface {
 	AddUserURL(c context.Context, userID string, shortURL string, originalURL string) error
 	GetUserURLsByUserID(c context.Context, userID string) (map[string]string, bool)
+	GetUsersCount(c context.Context) (int, error)
 }
 
 type urlConverter struct {
 	repo     repository
 	userRepo userRepository
 	pg       *postgres.DB
+}
+
+// GetStats return urls and users in service
+func (uc *urlConverter) GetStats(ctx context.Context) (entity.URLStats, error) {
+	var stats entity.URLStats
+
+	usersCount, err := uc.userRepo.GetUsersCount(ctx)
+	if err != nil {
+		return stats, err
+	}
+	urlsCount, err := uc.repo.GetURLsCount(ctx)
+	if err != nil {
+		return stats, err
+	}
+	stats.URLsCount = urlsCount
+	stats.UsersCount = usersCount
+
+	return stats, nil
 }
 
 // URLToID generate short URL and add it to DB.

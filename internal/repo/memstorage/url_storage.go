@@ -21,6 +21,11 @@ type memRepository struct {
 	isFileStorageSet bool
 }
 
+// GetURLsCount return count of shorten URLs in service
+func (r *memRepository) GetURLsCount(ctx context.Context) (int, error) {
+	return len(r.storageCache), nil
+}
+
 // New create in memory storage. Can load data from file.
 func New(path string) *memRepository {
 	dataFromFile := make(map[entity.URLID]entity.OriginalURL)
